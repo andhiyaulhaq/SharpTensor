@@ -79,6 +79,24 @@ Open your browser and navigate to the local URL provided by Vite.
 
 ---
 
+## 🧪 Testing
+
+SharpTensor uses **Vitest** for its blazing fast unit and integration testing suite. The tests run in a `jsdom` environment and mock heavy dependencies (like ONNX models and Web Workers) to ensure instant feedback during development.
+
+To run the test suite in watch mode:
+```bash
+pnpm test
+```
+
+To run the tests and generate a V8 coverage report:
+```bash
+pnpm test:coverage
+```
+
+The tests cover core application logic including state management, spatial transformations (Canvas pan/zoom/hit-testing), AI worker message passing, and YOLO format utilities.
+
+---
+
 ## 🎹 Keyboard Shortcuts
 
 SharpTensor is designed for high-speed, keyboard-driven labeling.

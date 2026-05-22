@@ -7,12 +7,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4.0.0",
     "vite": "^6.0.0",
+    "vitest": "^4.1.7",
     "wrangler": "^4.88.0"
   },
   "dependencies": {
