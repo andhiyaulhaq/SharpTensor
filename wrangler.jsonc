@@ -2,9 +2,9 @@
   "name": "sharptensor",
   "compatibility_date": "2025-05-01",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
   },
   "observability": {
-    "enabled": true
-  }
+    "enabled": true,
+  },
 }

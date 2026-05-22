@@ -15,12 +15,11 @@
 
 ### [🚀 Try SharpTensor Live!](https://sharptensor.andhiyaulhaq.workers.dev/)
 
-
 ---
 
 ## 💎 The SharpTensor Advantage
 
-Unlike traditional annotation tools, SharpTensor runs entirely in your browser while maintaining direct access to your local files. 
+Unlike traditional annotation tools, SharpTensor runs entirely in your browser while maintaining direct access to your local files.
 
 - **🚀 AI-Powered Efficiency**: Integrated **Ultralytics YOLOv8n** and **MobileSAM** for intelligent auto-labeling and interactive segmentation.
 - **🚀 Zero-Latency Canvas**: 60FPS zooming and panning powered by a hardware-accelerated HTML5 Canvas engine.
@@ -56,10 +55,12 @@ Unlike traditional annotation tools, SharpTensor runs entirely in your browser w
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - [Node.js](https://nodejs.org/) (v18 or higher)
 - A modern browser with **File System Access API** support.
 
 ### Installation
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/andhiyaulhaq/SharpTensor.git
@@ -71,10 +72,13 @@ Unlike traditional annotation tools, SharpTensor runs entirely in your browser w
    ```
 
 ### Development
+
 Start the local development server:
+
 ```bash
 pnpm dev
 ```
+
 Open your browser and navigate to the local URL provided by Vite.
 
 ---
@@ -84,11 +88,13 @@ Open your browser and navigate to the local URL provided by Vite.
 SharpTensor uses **Vitest** for its blazing fast unit and integration testing suite. The tests run in a `jsdom` environment and mock heavy dependencies (like ONNX models and Web Workers) to ensure instant feedback during development.
 
 To run the test suite in watch mode:
+
 ```bash
 pnpm test
 ```
 
 To run the tests and generate a V8 coverage report:
+
 ```bash
 pnpm test:coverage
 ```
@@ -97,20 +103,30 @@ The tests cover core application logic including state management, spatial trans
 
 ---
 
+## 🛡️ Code Quality & CI/CD
+
+SharpTensor maintains high code quality standards through automated linting, formatting, and Continuous Integration pipelines.
+
+- **ESLint & Prettier**: Enforce consistent code style and catch potential errors early. Run `pnpm lint` and `pnpm format` locally before committing.
+- **Continuous Integration (CI)**: Powered by GitHub Actions. Every Pull Request and push to `main` automatically triggers a pipeline that installs dependencies, lints the code, runs the full test suite with coverage, and ensures the application builds successfully.
+- **Continuous Deployment (CD)**: Automatically deployed to Cloudflare Workers natively when changes are pushed to the `main` branch.
+
+---
+
 ## 🎹 Keyboard Shortcuts
 
 SharpTensor is designed for high-speed, keyboard-driven labeling.
 
-| Key | Action |
-|-----|--------|
-| `W` | **Draw Mode** - Create new bounding boxes |
-| `V` | **Select Mode** - Move or resize existing boxes |
-| `D` | **Next Image** - Auto-saves current progress |
-| `A` | **Previous Image** |
-| `1-9` | **Quick Assign** - Instantly change class of selected box |
-| `Del / Backspace` | Delete selected bounding box |
-| `Space (Hold)` | Pan view |
-| `Ctrl + Scroll` | Smooth Zoom |
+| Key               | Action                                                    |
+| ----------------- | --------------------------------------------------------- |
+| `W`               | **Draw Mode** - Create new bounding boxes                 |
+| `V`               | **Select Mode** - Move or resize existing boxes           |
+| `D`               | **Next Image** - Auto-saves current progress              |
+| `A`               | **Previous Image**                                        |
+| `1-9`             | **Quick Assign** - Instantly change class of selected box |
+| `Del / Backspace` | Delete selected bounding box                              |
+| `Space (Hold)`    | Pan view                                                  |
+| `Ctrl + Scroll`   | Smooth Zoom                                               |
 
 ---
 
@@ -127,7 +143,7 @@ SharpTensor is designed for high-speed, keyboard-driven labeling.
 
 ## 📄 License
 
-Distributed under the **GNU Affero General Public License v3.0**. See `LICENSE` for more information. 
+Distributed under the **GNU Affero General Public License v3.0**. See `LICENSE` for more information.
 
 > [!IMPORTANT]
 > This project utilizes pretrained models from **Ultralytics (YOLOv8n)** and **Meta AI (MobileSAM)**. Your use of these models must comply with their respective licenses.
@@ -143,4 +159,3 @@ Distributed under the **GNU Affero General Public License v3.0**. See `LICENSE` 
 ---
 
 Designed with ❤️ for the Computer Vision Community.
-

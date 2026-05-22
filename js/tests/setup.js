@@ -61,8 +61,8 @@ const mockOrt = {
     create: vi.fn().mockResolvedValue({
       run: vi.fn().mockResolvedValue({}),
       inputNames: ['input'],
-      outputNames: ['output']
-    })
+      outputNames: ['output'],
+    }),
   },
   Tensor: class Tensor {
     constructor(type, data, dims) {
@@ -71,7 +71,7 @@ const mockOrt = {
       this.dims = dims;
     }
   },
-  env: { wasm: { wasmPaths: '' } }
+  env: { wasm: { wasmPaths: '' } },
 };
 
 // Mock ONNX Runtime Web to prevent loading actual models

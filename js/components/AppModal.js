@@ -6,25 +6,28 @@
  * - title: Modal title text
  */
 export class AppModal extends HTMLElement {
-    static get observedAttributes() { return ['title', 'hidden', 'class']; }
+  static get observedAttributes() {
+    return ['title', 'hidden', 'class'];
+  }
 
-    connectedCallback() {
-        if (this._initialized) return;
-        this.renderInitial();
-        this._initialized = true;
-    }
+  connectedCallback() {
+    if (this._initialized) return;
+    this.renderInitial();
+    this._initialized = true;
+  }
 
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (!this._initialized) return;
-        this.syncState();
-    }
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (!this._initialized) return;
+    this.syncState();
+  }
 
-    renderInitial() {
-        const title = this.getAttribute('title') || 'Alert';
-        // Default to hidden if neither attribute nor class is present
-        const isHidden = this.hasAttribute('hidden') || this.classList.contains('hidden') || !this._initialized;
+  renderInitial() {
+    const title = this.getAttribute('title') || 'Alert';
+    // Default to hidden if neither attribute nor class is present
+    const isHidden =
+      this.hasAttribute('hidden') || this.classList.contains('hidden') || !this._initialized;
 
-        this.innerHTML = `
+    this.innerHTML = `
             <div class="modal-root absolute inset-0 z-[1000] ${isHidden ? 'hidden' : ''}">
                 <div class="w-full h-full bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                     <div class="modal-card bg-(--bg-sidebar) border-t border-white/20 rounded-[20px] w-full max-w-[440px] shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_0_0_1px_rgba(255,255,255,0.05)] p-8 animate-[modal-in_0.3s_cubic-bezier(0.34,1.56,0.64,1)]">
@@ -56,20 +59,20 @@ export class AppModal extends HTMLElement {
                 </div>
             </div>
         `;
-    }
+  }
 
-    syncState() {
-        const root = this.querySelector('.modal-root');
-        if (!root) return;
-        
-        const isHidden = this.hasAttribute('hidden') || this.classList.contains('hidden');
-        root.classList.toggle('hidden', isHidden);
-        
-        const titleEl = this.querySelector('.modal-title');
-        if (titleEl && this.hasAttribute('title')) {
-            titleEl.textContent = this.getAttribute('title');
-        }
+  syncState() {
+    const root = this.querySelector('.modal-root');
+    if (!root) return;
+
+    const isHidden = this.hasAttribute('hidden') || this.classList.contains('hidden');
+    root.classList.toggle('hidden', isHidden);
+
+    const titleEl = this.querySelector('.modal-title');
+    if (titleEl && this.hasAttribute('title')) {
+      titleEl.textContent = this.getAttribute('title');
     }
+  }
 }
 
 customElements.define('st-modal', AppModal);
