@@ -16,12 +16,21 @@ export class FileSystemManager {
   }
 
   async handleOpenFolder(): Promise<void> {
+    console.log('[FS] handleOpenFolder initiated');
     try {
+      console.log('[FS] Requesting directory picker...');
       const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      console.log('[FS] Directory picker succeeded. Handle:', handle.name);
+      
       state.set({ loading: true, statusMessage: 'Reading folder...' });
 
+      console.log('[FS] Attempting to get/create "label" directory...');
       const labelHandle = await handle.getDirectoryHandle('label', { create: true });
+      console.log('[FS] "label" directory ready');
+
+      console.log('[FS] Attempting to get/create "label-seg" directory...');
       const labelSegHandle = await handle.getDirectoryHandle('label-seg', { create: true });
+      console.log('[FS] "label-seg" directory ready');
 
       state.set({
         folderHandle: handle,
@@ -29,14 +38,18 @@ export class FileSystemManager {
         labelSegFolderHandle: labelSegHandle,
       });
 
+      console.log('[FS] State updated with handles, loading classes...');
       await this.loadClasses();
+      console.log('[FS] Classes loaded. Scanning for images...');
 
       const images: ImageEntry[] = [];
       for await (const entry of handle.values()) {
-        if (entry.kind === 'file' && /\\.(jpe?g|png|webp)$/i.test(entry.name)) {
+        if (entry.kind === 'file' && /\.(jpe?g|png|webp)$/i.test(entry.name)) {
           images.push({ name: entry.name, handle: entry, status: 'pending' });
         }
       }
+      console.log(`[FS] Scan complete. Found ${images.length} images directly in root.`);
+      
       images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
       state.set({
@@ -45,8 +58,11 @@ export class FileSystemManager {
         loading: false,
         mode: 'select',
       });
-    } catch (err) {
-      console.error('Failed to open folder:', err);
+      console.log('[FS] State updated with images array. End of handleOpenFolder.');
+    } catch (err: any) {
+      console.error('[FS ERROR] Failed to open folder:', err);
+      console.error('[FS ERROR] Error Name:', err.name);
+      console.error('[FS ERROR] Error Message:', err.message);
       this.onStatusUpdate('Access denied or folder empty', true);
     }
   }

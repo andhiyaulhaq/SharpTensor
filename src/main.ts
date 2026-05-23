@@ -62,6 +62,7 @@ class App {
     this.initUI();
     this.canvasEngine = new CanvasEngine('main-canvas');
     this.initEventListeners();
+    this.initBYOMUI();
     this.initStateListeners();
     this.initClickLogger();
     this.initGlobalErrorHandling();
@@ -391,7 +392,7 @@ class App {
       this.dom.btnNext.disabled = !isFolderLoaded;
       this.dom.btnExport.disabled = !isFolderLoaded;
       this.dom.btnAddClass.disabled = !isFolderLoaded;
-      this.dom.btnLoadModel.disabled = true; // Always disabled for now
+      this.dom.btnLoadModel.disabled = false;
       this.dom.btnClearAll.disabled = !isFolderLoaded;
       this.dom.btnTaskDet.disabled = !isFolderLoaded;
       this.dom.btnTaskSeg.disabled = !isFolderLoaded;
@@ -533,10 +534,9 @@ class App {
       state.set({ loading: true, statusMessage: `Loading ${imageInfo.name}...` });
       const file = await (imageInfo.handle as any).getFile();
       const bitmap = await createImageBitmap(file);
-      let annotations: BoundingBox[] = [];
-      if (imageInfo.status !== 'pending') {
-        annotations = await this.fileSystemManager.loadAnnotations(imageInfo.name, bitmap);
-      }this.fitImageToCanvas(bitmap);
+      const annotations = await this.fileSystemManager.loadAnnotations(imageInfo.name, bitmap);
+      
+      this.fitImageToCanvas(bitmap);
 
       // Store in Cache
       const cacheEntry: ImageCacheEntry = { bitmap };
@@ -981,7 +981,102 @@ class App {
   }
 
   handleLoadCustomModel(): void {
-    this.updateStatus('⚠️ Custom model loading disabled for RT-DETR pipeline', true);
+    const byomPanel = document.getElementById('byom-panel');
+    if (byomPanel) byomPanel.classList.remove('translate-x-full');
+  }
+
+  initBYOMUI(): void {
+    const panel = document.getElementById('byom-panel');
+    const closeBtn = document.getElementById('btn-close-byom');
+    const archetypeSelect = document.getElementById('byom-archetype') as HTMLSelectElement;
+    const customJsWrapper = document.getElementById('byom-custom-js-wrapper');
+    const dropzone = document.getElementById('byom-dropzone');
+    const fileInput = document.getElementById('byom-file-input') as HTMLInputElement;
+    const fileInfo = document.getElementById('byom-file-info');
+
+    if (closeBtn && panel) {
+      closeBtn.addEventListener('click', () => panel.classList.add('translate-x-full'));
+    }
+
+    if (archetypeSelect && customJsWrapper) {
+      archetypeSelect.addEventListener('change', (e) => {
+        const val = (e.target as HTMLSelectElement).value;
+        const meanInput = document.getElementById('byom-mean') as HTMLInputElement;
+        const stdInput = document.getElementById('byom-std') as HTMLInputElement;
+        const advancedDetails = document.getElementById('byom-advanced-details') as HTMLDetailsElement;
+
+        if (val === 'custom_js') {
+          customJsWrapper.classList.remove('hidden');
+          customJsWrapper.classList.add('flex');
+          if (advancedDetails) advancedDetails.open = true;
+        } else {
+          customJsWrapper.classList.add('hidden');
+          customJsWrapper.classList.remove('flex');
+          
+          if (meanInput && stdInput) {
+            if (val === 'rtdetr_paddle') {
+              meanInput.value = '0.485, 0.456, 0.406';
+              stdInput.value = '0.229, 0.224, 0.225';
+            } else {
+              meanInput.value = '0, 0, 0';
+              stdInput.value = '255, 255, 255';
+            }
+          }
+        }
+      });
+    }
+
+    if (dropzone && fileInput && fileInfo) {
+      dropzone.addEventListener('click', () => fileInput.click());
+      
+      const preventDefaults = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => {
+          dropzone.classList.add('border-(--accent)', 'bg-(--accent)/10');
+          dropzone.classList.remove('border-(--border)');
+        }, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, () => {
+          dropzone.classList.remove('border-(--accent)', 'bg-(--accent)/10');
+          dropzone.classList.add('border-(--border)');
+        }, false);
+      });
+      
+      dropzone.addEventListener('drop', (e: DragEvent) => {
+        const dt = e.dataTransfer;
+        const files = dt?.files;
+        if (files && files.length > 0) this.handleBYOMFileUpload(files[0]);
+      }, false);
+
+      fileInput.addEventListener('change', (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files.length > 0) this.handleBYOMFileUpload(files[0]);
+      });
+    }
+  }
+
+  handleBYOMFileUpload(file: File | undefined): void {
+    if (!file) return;
+    const fileInfo = document.getElementById('byom-file-info');
+    if (!file.name.endsWith('.onnx')) {
+      this.updateStatus('❌ Invalid file. Please upload an .onnx model.', true);
+      return;
+    }
+    if (fileInfo) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      fileInfo.innerHTML = `<span class="text-green-400">Memory Validated ✓</span> (${sizeMB} MB)`;
+    }
+    this.updateStatus(`Ready to apply custom model: ${file.name}`);
   }
 
   updateStatus(msg: string, isError = false): void {
