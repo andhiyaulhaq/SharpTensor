@@ -9,7 +9,7 @@ export class RightSidebar extends HTMLElement {
 
   private render() {
     this.innerHTML = `
-      <aside class="w-(--sidebar-right-width) bg-(--bg-sidebar) border-l border-(--border) flex flex-col px-4 overflow-y-auto h-full">
+      <aside class="w-(--sidebar-right-width) bg-(--bg-sidebar) border-l border-(--border) flex flex-col px-4 h-full">
         <st-sidebar-section title="Active Task">
           <div class="flex p-1 bg-(--bg-card) rounded-lg border border-(--border) gap-1">
             <button id="task-det" class="flex-1 py-1.5 rounded-md text-[0.75rem] font-bold transition-all active-task-btn disabled:opacity-40 disabled:cursor-not-allowed" disabled>
@@ -19,17 +19,6 @@ export class RightSidebar extends HTMLElement {
               Segmentation
             </button>
           </div>
-        </st-sidebar-section>
-
-        <st-sidebar-section title="Classes">
-          <div class="flex flex-col gap-1 py-1" id="class-list"></div>
-          <button id="btn-add-class" class="mt-2 w-full flex items-center justify-center py-1.5 rounded-md bg-(--bg-card) border border-(--border) text-(--text-secondary) hover:text-(--text-primary) hover:bg-(--bg-hover) transition-all disabled:opacity-50" disabled>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span class="ml-2 text-[0.75rem] font-semibold">New Class</span>
-          </button>
         </st-sidebar-section>
 
         <st-sidebar-section title="AI Assistant" badge-id="model-status-badge" badge-text="Idle">
@@ -58,7 +47,11 @@ export class RightSidebar extends HTMLElement {
           <div id="ai-logs" class="bg-black/20 rounded-lg p-2.5 font-mono text-[0.65rem] h-40 overflow-y-auto flex flex-col gap-1.5 border border-(--border) custom-scrollbar">
             <div class="text-(--text-muted) italic">Waiting for AI activity...</div>
           </div>
+        </st-sidebar-section>
 
+        <st-sidebar-section title="Classes" action-id="btn-add-class" class="flex-1 min-h-0">
+          <div class="flex flex-col gap-1 py-1 overflow-y-auto custom-scrollbar flex-1 min-h-0" id="class-list"></div>
+        </st-sidebar-section>
 
         <div class="py-6 mt-auto">
           <button id="btn-clear-all" class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[0.85rem] font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50" disabled>
