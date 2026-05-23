@@ -58,9 +58,7 @@ export class RightSidebar extends HTMLElement {
           <div id="ai-logs" class="bg-black/20 rounded-lg p-2.5 font-mono text-[0.65rem] h-40 overflow-y-auto flex flex-col gap-1.5 border border-(--border) custom-scrollbar">
             <div class="text-(--text-muted) italic">Waiting for AI activity...</div>
           </div>
-        </st-sidebar-section>
 
-        <st-hotkeys-guide></st-hotkeys-guide>
 
         <div class="py-6 mt-auto">
           <button id="btn-clear-all" class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[0.85rem] font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50" disabled>
