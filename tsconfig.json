@@ -11,7 +11,8 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitAny": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"]
   },
   "include": ["src/**/*.ts", "js/**/*.js"],
   "exclude": ["node_modules", "dist"]

@@ -107,6 +107,22 @@ pnpm test:coverage
 
 The tests cover core application logic including state management, spatial transformations (Canvas pan/zoom/hit-testing), AI worker message passing, and YOLO format utilities.
 
+### End-to-End (E2E) Testing
+
+SharpTensor utilizes **Playwright** to conduct thorough end-to-end tests in a real browser environment. The E2E suite tests real interactions against the custom UI elements synchronously using a mocked Web Worker.
+
+To install the required Playwright browsers:
+
+```bash
+pnpm exec playwright install --with-deps chromium
+```
+
+To execute the full E2E test suite:
+
+```bash
+pnpm test:e2e
+```
+
 ---
 
 ## 🛡️ Code Quality & CI/CD
@@ -114,7 +130,7 @@ The tests cover core application logic including state management, spatial trans
 SharpTensor maintains high code quality standards through automated linting, formatting, and Continuous Integration pipelines.
 
 - **TypeScript, ESLint & Prettier**: Enforce strict type safety, consistent code style, and catch potential errors early. Run `pnpm exec tsc --noEmit`, `pnpm lint`, and `pnpm format` locally before committing.
-- **Continuous Integration (CI)**: Powered by GitHub Actions. Every Pull Request and push to `main` automatically triggers a pipeline that installs dependencies, runs TypeScript type verification, lints the code, runs the full test suite with coverage, and ensures the application builds successfully.
+- **Continuous Integration (CI)**: Powered by GitHub Actions. Every Pull Request and push to `main` automatically triggers a pipeline that installs dependencies, runs TypeScript type verification, lints the code, executes both the Vitest unit tests and Playwright E2E suites, and ensures the application builds successfully.
 - **Continuous Deployment (CD)**: Automatically deployed to Cloudflare Workers natively when changes are pushed to the `main` branch.
 
 ---

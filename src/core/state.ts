@@ -28,6 +28,7 @@ export class AppState {
       pan: { x: 0, y: 0 },
       isPanning: false,
       interactionMode: 'select', // 'select' | 'draw' | 'magic'
+      mode: 'select',
       loading: false,
 
       // AI State

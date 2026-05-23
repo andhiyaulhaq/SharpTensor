@@ -307,7 +307,7 @@ class App {
         document.getElementById('loading-overlay')?.classList.toggle('hidden', !data.loading);
       }
 
-      const isFolderLoaded = !!data.folderHandle;
+      const isFolderLoaded = !!data.folderHandle || data.images.length > 0;
       this.dom.btnSelect.disabled = !isFolderLoaded;
       this.dom.btnDraw.disabled = !isFolderLoaded;
       this.dom.btnPrev.disabled = !isFolderLoaded;
@@ -369,6 +369,12 @@ class App {
 
       this.initLogListener();
     });
+
+    // Sync initial state values to UI on startup
+    const initialMode = state.data.mode;
+    const isDrawOrMagic = initialMode === 'draw' || initialMode === 'magic';
+    this.dom.btnDraw.classList.toggle('active', isDrawOrMagic);
+    this.dom.btnSelect.classList.toggle('active', initialMode === 'select');
   }
 
   initLogListener(): void {
@@ -390,7 +396,7 @@ class App {
       if (placeholder) placeholder.remove();
 
       const logEntry = document.createElement('div');
-      logEntry.className = `flex gap-2 leading-tight py-0.5 border-b border-white/5 last:border-0`;
+      logEntry.className = `log-entry flex gap-2 leading-tight py-0.5 border-b border-white/5 last:border-0`;
 
       const timeSpan = document.createElement('span');
       timeSpan.className = 'text-white/30 shrink-0 font-mono';
@@ -661,6 +667,7 @@ class App {
       state.set({
         images: mockImages,
         currentImageIndex: 0,
+        mode: 'select',
         loading: false,
         classes: [
           { id: 0, name: 'Person', color: '#ff0000' },
@@ -1009,9 +1016,8 @@ class App {
     } = params;
 
     const modal = this.dom.modal;
-    const titleEl = modal.querySelector('.modal-title') as HTMLElement;
+    modal.setAttribute('title', title);
     const msgEl = modal.querySelector('.modal-message') as HTMLElement;
-    if (titleEl) titleEl.textContent = title;
     if (msgEl) msgEl.textContent = message;
 
     const input = modal.querySelector('.modal-input') as HTMLInputElement;
@@ -1594,6 +1600,12 @@ class App {
 
     this.updateStatus(`Task Switched: ${task.toUpperCase()}`);
   }
+}
+
+// DEV-only: expose state and ai for Playwright test assertions
+if (import.meta.env.DEV) {
+  (window as any).__state = state;
+  (window as any).__ai = ai;
 }
 
 new App();
