@@ -63,6 +63,103 @@ export class AppModal extends HTMLElement {
         `;
   }
 
+  show(params: {
+    message: string;
+    inputPlaceholder?: string;
+    confirmText?: string;
+    cancelText?: string;
+    checkboxLabel?: string;
+    onConfirm?: (val: string, checked: boolean) => void;
+    onCancel?: () => void;
+  }): void {
+    if (!this._initialized) this.renderInitial();
+    
+    this.classList.remove('hidden');
+    this.removeAttribute('hidden');
+    this.syncState();
+
+    const msgEl = this.querySelector('.modal-message');
+    const inputEl = this.querySelector('.modal-input') as HTMLInputElement;
+    const checkboxContainer = this.querySelector('.modal-checkbox-container') as HTMLElement;
+    const checkboxEl = this.querySelector('.modal-checkbox') as HTMLInputElement;
+    const checkboxLabelEl = this.querySelector('.modal-checkbox-label');
+    const confirmBtn = this.querySelector('.modal-confirm') as HTMLButtonElement;
+    const cancelBtn = this.querySelector('.modal-cancel') as HTMLButtonElement;
+
+    if (msgEl) msgEl.textContent = params.message;
+    
+    if (inputEl) {
+      if (params.inputPlaceholder !== undefined && params.inputPlaceholder !== '') {
+        inputEl.placeholder = params.inputPlaceholder;
+        inputEl.classList.remove('hidden');
+        inputEl.value = '';
+        setTimeout(() => inputEl.focus(), 100);
+      } else {
+        inputEl.classList.add('hidden');
+      }
+    }
+
+    if (checkboxContainer && checkboxEl && checkboxLabelEl) {
+      if (params.checkboxLabel) {
+        checkboxLabelEl.textContent = params.checkboxLabel;
+        checkboxContainer.classList.remove('hidden');
+        checkboxContainer.classList.add('flex');
+        checkboxEl.checked = false;
+        
+        checkboxContainer.onclick = (e: Event) => {
+          if (e.target !== checkboxEl) {
+             checkboxEl.checked = !checkboxEl.checked;
+          }
+        };
+      } else {
+        checkboxContainer.classList.add('hidden');
+        checkboxContainer.classList.remove('flex');
+        checkboxContainer.onclick = null;
+      }
+    }
+
+    const cleanup = () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+
+    if (confirmBtn) {
+      confirmBtn.textContent = params.confirmText || 'Confirm';
+      confirmBtn.onclick = () => {
+        this.hide();
+        cleanup();
+        if (params.onConfirm) {
+          params.onConfirm(inputEl ? inputEl.value : '', checkboxEl ? checkboxEl.checked : false);
+        }
+      };
+    }
+
+    if (cancelBtn) {
+      cancelBtn.textContent = params.cancelText || 'Cancel';
+      cancelBtn.onclick = () => {
+        this.hide();
+        cleanup();
+        if (params.onCancel) params.onCancel();
+      };
+    }
+    
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !this.classList.contains('hidden')) {
+        e.preventDefault();
+        confirmBtn?.click();
+      } else if (e.key === 'Escape' && !this.classList.contains('hidden')) {
+        e.preventDefault();
+        cancelBtn?.click();
+      }
+    };
+    window.addEventListener('keydown', handleKeydown);
+  }
+
+  hide(): void {
+    this.classList.add('hidden');
+    this.setAttribute('hidden', '');
+    this.syncState();
+  }
+
   syncState(): void {
     const root = this.querySelector('.modal-root');
     if (!root) return;
