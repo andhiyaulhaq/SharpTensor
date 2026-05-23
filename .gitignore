@@ -37,3 +37,9 @@ Thumbs.db
 .turbo/
 
 reference/
+
+# Test Artifacts
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
