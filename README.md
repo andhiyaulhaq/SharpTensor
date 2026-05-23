@@ -8,7 +8,7 @@
 
 ![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-red?style=for-the-badge)
-![Tech](https://img.shields.io/badge/tech-Vanilla%20JS%20%7C%20Vite-orange?style=for-the-badge)
+![Tech](https://img.shields.io/badge/tech-TypeScript%20%7C%20Vite-blue?style=for-the-badge)
 [![Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=cloudflare)](https://sharptensor.andhiyaulhaq.workers.dev/)
 
 ---
@@ -45,7 +45,7 @@ Unlike traditional annotation tools, SharpTensor runs entirely in your browser w
 ## 🛠️ Technology Stack
 
 - **Platform**: Modern Web Browser (Chrome/Edge recommended for File System API)
-- **Core**: Vanilla JavaScript (ES6+)
+- **Core**: TypeScript (Strict Type Safety)
 - **Build Tool**: [Vite 5](https://vitejs.dev/)
 - **Engine**: HTML5 Canvas (Hardware Accelerated)
 - **Styling**: Premium CSS3 (Custom Properties, Backdrop Filters, Flex/Grid)
@@ -79,6 +79,12 @@ Start the local development server:
 pnpm dev
 ```
 
+Run static type-checking to ensure type safety:
+
+```bash
+pnpm exec tsc --noEmit
+```
+
 Open your browser and navigate to the local URL provided by Vite.
 
 ---
@@ -107,8 +113,8 @@ The tests cover core application logic including state management, spatial trans
 
 SharpTensor maintains high code quality standards through automated linting, formatting, and Continuous Integration pipelines.
 
-- **ESLint & Prettier**: Enforce consistent code style and catch potential errors early. Run `pnpm lint` and `pnpm format` locally before committing.
-- **Continuous Integration (CI)**: Powered by GitHub Actions. Every Pull Request and push to `main` automatically triggers a pipeline that installs dependencies, lints the code, runs the full test suite with coverage, and ensures the application builds successfully.
+- **TypeScript, ESLint & Prettier**: Enforce strict type safety, consistent code style, and catch potential errors early. Run `pnpm exec tsc --noEmit`, `pnpm lint`, and `pnpm format` locally before committing.
+- **Continuous Integration (CI)**: Powered by GitHub Actions. Every Pull Request and push to `main` automatically triggers a pipeline that installs dependencies, runs TypeScript type verification, lints the code, runs the full test suite with coverage, and ensures the application builds successfully.
 - **Continuous Deployment (CD)**: Automatically deployed to Cloudflare Workers natively when changes are pushed to the `main` branch.
 
 ---

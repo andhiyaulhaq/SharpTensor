@@ -1,6 +1,6 @@
 # SharpTensor Architecture (C4 Model)
 
-This document provides an architectural overview of the SharpTensor application using the [C4 model for visualizing software architecture](https://c4model.com/). 
+This document provides an architectural overview of the SharpTensor application using the [C4 model for visualizing software architecture](https://c4model.com/).
 
 ## Level 1: System Context Diagram
 
@@ -11,7 +11,7 @@ C4Context
   title System Context Diagram for SharpTensor
 
   Person(annotator, "Computer Vision Engineer", "A user who needs to prepare image datasets for YOLO training.")
-  
+
   System(sharptensor, "SharpTensor", "Local-first web application for high-speed YOLO bounding box and mask annotation.")
 
   System_Ext(local_fs, "Local File System", "The user's local hard drive where images and YOLO .txt labels are stored.")
@@ -35,7 +35,7 @@ C4Container
   title Container Diagram for SharpTensor
 
   Person(annotator, "Computer Vision Engineer", "A user who needs to prepare image datasets for YOLO training.")
-  
+
   System_Boundary(c1, "SharpTensor Application (Browser)") {
     Container(spa, "Single-Page Application", "Vanilla JS, Vite, HTML5 Canvas", "Provides the user interface, renders the high-performance canvas, and handles application state.")
     Container(ai_worker, "AI Web Worker", "Web Worker, ONNX Runtime Web", "Runs heavy AI inference tasks in the background to prevent UI blocking.")

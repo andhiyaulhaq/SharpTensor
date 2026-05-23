@@ -1,10 +1,12 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
   {
     languageOptions: {
@@ -28,6 +30,8 @@ export default [
       'no-undef': 'off',
       'no-empty': 'off',
       'preserve-caught-error': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
-  },
-];
+  }
+);
