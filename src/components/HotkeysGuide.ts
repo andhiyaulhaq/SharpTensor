@@ -9,7 +9,7 @@ export class HotkeysGuide extends HTMLElement {
 
   private render() {
     this.innerHTML = `
-      <div class="absolute top-4 right-4 z-[100] group">
+      <div class="absolute top-4 right-4 z-100 group">
         <!-- Floating Toggle Button -->
         <button class="flex items-center justify-center w-10 h-10 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition-all cursor-help shadow-lg" aria-label="Keyboard Shortcuts">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
