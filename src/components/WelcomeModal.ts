@@ -63,14 +63,8 @@ export class WelcomeModal {
 
   hide(): void {
     if (this.dom) {
-      this.dom.classList.add('hiding');
-      this.dom.style.pointerEvents = 'none';
-      setTimeout(() => {
-        if (this.dom) {
-          this.dom.remove();
-          this.dom = null;
-        }
-      }, 1200);
+      this.dom.remove();
+      this.dom = null;
     }
   }
 }

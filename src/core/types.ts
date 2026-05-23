@@ -61,6 +61,8 @@ export interface AppStateData {
   activePromptBox: [number, number, number, number] | null;
   samLatency: { encoder: number; decoder: number };
   statusMessage?: string | null;
+  tourActive: boolean;
+  tourStep: 'idle' | 'step1-autolabel' | 'step2-interact' | 'complete';
 }
 
 // Worker Message Protocol (Discriminated Unions)

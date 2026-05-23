@@ -24,10 +24,17 @@ export class SharpTensorApp {
   }
 
   /**
-   * Wait for the demo load and AI model prediction to finish
+   * Wait for the demo load, interact with the tour, and wait for AI prediction to finish
    */
   async waitForDemoReady(): Promise<void> {
-    // Demo sets status to "Demo Ready: Found X objects"
+    // 1. Wait for the tour highlight on the auto-label button
+    const autoLabelBtn = this.page.locator('#btn-auto-label-all.tour-highlight');
+    await autoLabelBtn.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // 2. Click the button to advance the tour and trigger inference
+    await this.page.locator('#btn-auto-label-all').click();
+
+    // 3. Wait for the inference to finish
     await this.page.waitForFunction(
       () => {
         const statusEl = document.getElementById('status-message');

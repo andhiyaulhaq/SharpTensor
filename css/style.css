@@ -120,7 +120,7 @@ st-tool-button.active .tool-inner {
 
 .dropdown-item {
   display: flex;
-  items-center: center;
+  align-items: center;
   gap: 10px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -145,7 +145,7 @@ st-tool-button.active .tool-inner {
   width: 10px;
   height: 10px;
   border-radius: 3px;
-  shrink: 0;
+  flex-shrink: 0;
 }
 
 .dropdown-item .check-icon {
@@ -292,7 +292,18 @@ st-tool-button.active .tool-inner {
     opacity: 1;
   }
 
-  to {
-    opacity: 0;
-  }
+}
+
+/* --- Tour UI --- */
+@keyframes tour-pulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+.tour-highlight {
+  animation: tour-pulse 2s infinite !important;
+  border-color: var(--accent) !important;
+  position: relative;
+  z-index: 50;
 }

@@ -42,6 +42,8 @@ export class AppState {
       promptPoints: [], // { x, y, label }
       activePromptBox: null, // [x1, y1, x2, y2]
       samLatency: { encoder: 0, decoder: 0 },
+      tourActive: false,
+      tourStep: 'idle',
     };
 
     this.undoStack = [];
