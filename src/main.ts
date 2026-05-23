@@ -362,6 +362,9 @@ class App {
       ];
 
       state.set({
+        folderHandle: null,
+        labelFolderHandle: null,
+        labelSegFolderHandle: null,
         images: mockImages,
         currentImageIndex: 0,
         mode: 'select',
