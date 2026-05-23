@@ -80,8 +80,30 @@ class App {
       container: this.dom.classList,
       onSaveClasses: (c) => state.set({ classes: c }),
       onDeleteClass: (id) => {
-        const newClasses = state.data.classes.filter((c) => c.id !== id);
-        state.set({ classes: newClasses, selectedClassId: newClasses[0]?.id || null });
+        const cls = state.data.classes.find((c) => c.id === id);
+        if (!cls) return;
+
+        this.showModal({
+          title: 'Confirm Deletion',
+          message: `Are you sure you want to delete the class "${cls.name}"? This will permanently wipe all associated bounding boxes from the current image.`,
+          confirmText: 'Delete Class',
+          cancelText: 'Cancel',
+          onConfirm: () => {
+            state.saveHistory();
+            const newClasses = state.data.classes.filter((c) => c.id !== id);
+            const newAnnotations = state.data.annotations.filter((box) => box.classId !== id);
+            const newSelectedBoxId = newAnnotations.some((b) => b.id === state.data.selectedBoxId) 
+              ? state.data.selectedBoxId 
+              : null;
+
+            state.set({ 
+              classes: newClasses, 
+              selectedClassId: newClasses[0]?.id || null,
+              annotations: newAnnotations,
+              selectedBoxId: newSelectedBoxId
+            });
+          }
+        });
       },
     });
 
