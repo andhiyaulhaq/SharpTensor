@@ -327,16 +327,30 @@ class App {
         }
       }
 
-      if (
+      const datasetChanged =
+        data.folderHandle !== oldData.folderHandle ||
         data.images.length !== oldData.images.length ||
+        (data.images.length > 0 && oldData.images.length > 0 && data.images[0]?.name !== oldData.images[0]?.name);
+
+      if (
+        data.images !== oldData.images ||
         data.currentImageIndex !== oldData.currentImageIndex
       ) {
+        if (datasetChanged) {
+          this.imageCache.clear();
+        }
+
         this.dom.imageCounter.textContent = `${data.currentImageIndex + 1} / ${data.images.length}`;
         this.dom.fileCountBadge.textContent = `${data.images.length} items`;
+        this.imageListManager.render(data.images);
 
-        if (data.currentImageIndex !== oldData.currentImageIndex) {
-          this.loadImage(data.currentImageIndex);
-          this.imageListManager.render(data.images);
+        if (data.currentImageIndex !== oldData.currentImageIndex || datasetChanged) {
+          if (data.currentImageIndex !== -1) {
+            this.loadImage(data.currentImageIndex);
+          } else {
+            state.set({ annotations: [], currentImageBitmap: null });
+            if (this.canvasEngine) this.canvasEngine.draw();
+          }
         }
       }
 
@@ -346,9 +360,7 @@ class App {
         this.syncTaskAnnotations();
       }
 
-      if (data.images !== oldData.images || data.currentImageIndex !== oldData.currentImageIndex) {
-        this.imageListManager.render(data.images);
-      }
+
 
       if (data.classes !== oldData.classes || data.selectedClassId !== oldData.selectedClassId) {
         this.classListManager.render(data.classes, data.selectedClassId);
@@ -357,6 +369,14 @@ class App {
       if (data.annotations !== oldData.annotations) {
         this.annotationListManager.render(data.annotations, data.selectedBoxId);
         if (this.canvasEngine) this.canvasEngine.draw();
+
+        if (data.currentImageIndex !== -1) {
+          const cached = this.imageCache.get(data.currentImageIndex);
+          if (cached) {
+            if (data.currentTask === 'detection') cached.detAnnos = data.annotations;
+            else cached.segAnnos = data.annotations;
+          }
+        }
       } else if (data.selectedBoxId !== oldData.selectedBoxId) {
         this.annotationListManager.updateSelection(data.selectedBoxId);
       }
