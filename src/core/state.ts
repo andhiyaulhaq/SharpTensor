@@ -64,8 +64,16 @@ export class AppState {
     this.redoStack = []; // New action clears redo stack
   }
 
-  undo(): void {
-    if (this.undoStack.length === 0) return;
+  /**
+   * Clears history stack (e.g., when switching images)
+   */
+  clearHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
+  undo(): boolean {
+    if (this.undoStack.length === 0) return false;
 
     // Capture current state for redo
     const currentState = JSON.stringify(this.data.annotations);
@@ -76,10 +84,11 @@ export class AppState {
       const previous = JSON.parse(previousSnapshot);
       this.set({ annotations: previous });
     }
+    return true;
   }
 
-  redo(): void {
-    if (this.redoStack.length === 0) return;
+  redo(): boolean {
+    if (this.redoStack.length === 0) return false;
 
     // Capture current state for undo
     const currentState = JSON.stringify(this.data.annotations);
@@ -90,6 +99,7 @@ export class AppState {
       const next = JSON.parse(nextSnapshot);
       this.set({ annotations: next });
     }
+    return true;
   }
 
   /**

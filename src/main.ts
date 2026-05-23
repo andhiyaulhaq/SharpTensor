@@ -230,13 +230,14 @@ class App {
 
       if (e.ctrlKey && key === 'z') {
         e.preventDefault();
-        if (e.shiftKey) state.redo();
-        else state.undo();
+        const changed = e.shiftKey ? state.redo() : state.undo();
+        if (changed) this.updateStatus(e.shiftKey ? '↪️ Redo' : '↩️ Undo');
         return;
       }
       if (e.ctrlKey && key === 'y') {
         e.preventDefault();
-        state.redo();
+        const changed = state.redo();
+        if (changed) this.updateStatus('↪️ Redo');
         return;
       }
 
@@ -347,6 +348,7 @@ class App {
 
       if (data.annotations !== oldData.annotations) {
         this.annotationListManager.render(data.annotations, data.selectedBoxId);
+        if (this.canvasEngine) this.canvasEngine.draw();
       } else if (data.selectedBoxId !== oldData.selectedBoxId) {
         this.annotationListManager.updateSelection(data.selectedBoxId);
       }
@@ -547,8 +549,7 @@ class App {
         if (oldestIndex !== undefined) this.imageCache.delete(oldestIndex);
       }
 
-      state.undoStack = [];
-      state.redoStack = [];
+      state.clearHistory();
       state.saveHistory();
 
       state.set({
@@ -930,6 +931,7 @@ class App {
       checkboxLabel: 'Also reset class definitions (classes.txt)',
       onConfirm: async (val, clearClasses) => {
         try {
+          state.saveHistory();
           state.set({ loading: true, statusMessage: '🗑️ Purging data...' });
           const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = state.data;
 

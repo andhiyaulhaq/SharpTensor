@@ -22,7 +22,10 @@ export class AIOrchestrator {
   }
 
   async handleAutoLabelDataset(): Promise<void> {
-    if (state.data.tourActive && state.data.tourStep === 'step1-autolabel') {
+    // If we have no folder handle but we have an image, we are in the mock demo workspace.
+    const isDemoWorkspace = !state.data.folderHandle && state.data.images.length > 0;
+
+    if (state.data.tourActive || isDemoWorkspace) {
       this.config.onUpdateStatus('🎯 AI Analyzing demo scene...');
       const image = state.data.images[0];
       if (!image) return;
@@ -39,6 +42,7 @@ export class AIOrchestrator {
         state.set({ classes: updatedClasses });
       }
 
+      state.saveHistory();
       state.set({ annotations: mapped });
       this.config.onDrawCanvas();
       this.config.onUpdateStatus(`✅ Demo Ready: Found ${mapped.length} objects`);

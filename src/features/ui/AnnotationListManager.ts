@@ -46,6 +46,7 @@ export class AnnotationListManager {
         const newAnnotations = state.data.annotations.map((b) =>
           b.id === boxId ? { ...b, classId: newClassId } : b
         );
+        state.saveHistory();
         state.set({ annotations: newAnnotations });
       });
     });
