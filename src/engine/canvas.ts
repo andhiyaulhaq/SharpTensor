@@ -683,9 +683,9 @@ export class CanvasEngine {
   }
 
   drawAnnotations(annotations: BoundingBox[]): void {
-    const { selectedBoxId, hoveredBoxId, zoom, classes } = state.data;
+    const { selectedBoxId, zoom, classes } = state.data;
 
-    annotations.forEach((box) => {
+    const drawBox = (box: BoundingBox) => {
       const isSelected = box.id === selectedBoxId;
       const cls = classes.find((c) => c.id === box.classId);
       const color = cls ? cls.color : '#E7F243';
@@ -734,6 +734,16 @@ export class CanvasEngine {
       this.drawLabel(box, label, color);
 
       this.ctx.restore();
+    };
+
+    // Draw all unselected boxes first
+    annotations.forEach((box) => {
+      if (box.id !== selectedBoxId) drawBox(box);
+    });
+
+    // Draw the selected box last (so it renders on top)
+    annotations.forEach((box) => {
+      if (box.id === selectedBoxId) drawBox(box);
     });
   }
 
