@@ -89,6 +89,21 @@ Open your browser and navigate to the local URL provided by Vite.
 
 ---
 
+## 📚 Documentation
+
+SharpTensor provides a rigorous, multi-level documentation system:
+
+- **Architectural Documentation (C4 Model):** High-level design diagrams and component interactions can be found in `docs/architecture.md`.
+- **API Reference (TypeDoc):** To generate the deep code-level API documentation (Level 4), run the following command:
+
+```bash
+pnpm doc
+```
+
+This will parse the TypeScript source and generate a complete HTML reference site in the `docs/api` folder. Open `docs/api/index.html` in your browser to view it.
+
+---
+
 ## 🧪 Testing
 
 SharpTensor uses **Vitest** for its blazing fast unit and integration testing suite. The tests run in a `jsdom` environment and mock heavy dependencies (like ONNX models and Web Workers) to ensure instant feedback during development.

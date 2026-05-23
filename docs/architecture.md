@@ -37,7 +37,7 @@ C4Container
   Person(annotator, "Computer Vision Engineer", "A user who needs to prepare image datasets for YOLO training.")
 
   System_Boundary(c1, "SharpTensor Application (Browser)") {
-    Container(spa, "Single-Page Application", "Vanilla JS, Vite, HTML5 Canvas", "Provides the user interface, renders the high-performance canvas, and handles application state.")
+    Container(spa, "Single-Page Application", "TypeScript, Vite, HTML5 Canvas", "Provides the user interface, renders the high-performance canvas, and handles application state.")
     Container(ai_worker, "AI Web Worker", "Web Worker, ONNX Runtime Web", "Runs heavy AI inference tasks in the background to prevent UI blocking.")
     ContainerDb(browser_cache, "Browser Cache / IndexedDB", "Browser Storage", "Caches downloaded ONNX models and local application settings.")
   }
@@ -65,12 +65,12 @@ C4Component
   title Component Diagram for Single-Page Application
 
   Container_Boundary(spa, "Single-Page Application") {
-    Component(ui_controller, "UI Controller", "js/main.js, js/components/*", "Manages DOM elements, event listeners (hotkeys), and modal dialogs.")
-    Component(state_manager, "State Manager", "js/core/state.js", "Holds the centralized source of truth for the current session (images loaded, annotations, selected classes).")
-    Component(canvas_engine, "Canvas Engine", "js/engine/canvas.js", "Handles 60FPS rendering, spatial transformations (pan/zoom), and hit-testing for bounding boxes.")
-    Component(file_explorer, "File System Explorer", "js/main.js", "Interfaces with the OS to stream directory contents and read image blobs via the File System Access API.")
-    Component(yolo_serializer, "YOLO IO Manager", "js/utils/yolo.js", "Serializes and deserializes internal annotation state to/from standard YOLO .txt formats and maintains classes.txt.")
-    Component(worker_bridge, "AI Worker Bridge", "js/core/ai.js", "Abstracts the complexity of messaging the AI Web Worker, managing promises and task queues.")
+    Component(ui_controller, "UI Controller", "src/main.ts, src/components/*", "Manages DOM elements, event listeners (hotkeys), and modal dialogs.")
+    Component(state_manager, "State Manager", "src/core/state.ts", "Holds the centralized source of truth for the current session (images loaded, annotations, selected classes).")
+    Component(canvas_engine, "Canvas Engine", "src/engine/canvas.ts", "Handles 60FPS rendering, spatial transformations (pan/zoom), and hit-testing for bounding boxes.")
+    Component(file_explorer, "File System Explorer", "src/main.ts", "Interfaces with the OS to stream directory contents and read image blobs via the File System Access API.")
+    Component(yolo_serializer, "YOLO IO Manager", "src/utils/yolo.ts", "Serializes and deserializes internal annotation state to/from standard YOLO .txt formats and maintains classes.txt.")
+    Component(worker_bridge, "AI Worker Bridge", "src/core/ai.ts", "Abstracts the complexity of messaging the AI Web Worker, managing promises and task queues.")
   }
 
   Container(ai_worker, "AI Web Worker", "Web Worker", "Background AI Inference.")
@@ -94,14 +94,14 @@ C4Component
   title Component Diagram for AI Web Worker
 
   Container_Boundary(ai_worker, "AI Web Worker") {
-    Component(message_handler, "Worker Message Router", "js/core/ai.worker.js", "Receives messages from the main thread and routes to appropriate processing pipelines.")
-    Component(model_loader, "Model Loader", "js/core/ai.worker.js (ONNX API)", "Downloads (or loads from cache) and initializes the ONNX inference sessions.")
+    Component(message_handler, "Worker Message Router", "src/core/ai.worker.ts", "Receives messages from the main thread and routes to appropriate processing pipelines.")
+    Component(model_loader, "Model Loader", "src/core/ai.worker.ts (ONNX API)", "Downloads (or loads from cache) and initializes the ONNX inference sessions.")
     Component(inference_engine, "ONNX Inference Session", "ONNX Runtime Web (WASM)", "Executes the neural network graph on provided tensors.")
-    Component(preprocessor, "Image Preprocessor", "js/core/ai.worker.js", "Resizes, normalizes, and converts image data into Float16 tensors.")
-    Component(postprocessor, "Result Postprocessor", "js/core/ai.worker.js, js/core/sam_utils.js", "Performs Non-Maximum Suppression (NMS) for YOLO and contour tracing for SAM masks.")
+    Component(preprocessor, "Image Preprocessor", "src/core/ai.worker.ts", "Resizes, normalizes, and converts image data into Float16 tensors.")
+    Component(postprocessor, "Result Postprocessor", "src/core/ai.worker.ts, src/core/sam_utils.ts", "Performs Non-Maximum Suppression (NMS) for YOLO and contour tracing for SAM masks.")
   }
 
-  Container(spa, "Single-Page Application", "Vanilla JS", "Main UI Thread.")
+  Container(spa, "Single-Page Application", "TypeScript", "Main UI Thread.")
   ContainerDb(browser_cache, "Browser Cache / IndexedDB", "Browser Storage", "Local model storage.")
 
   Rel(spa, message_handler, "Sends tasks (Image Data, Prompts)", "postMessage")

@@ -1,0 +1,20 @@
+{
+  "entryPoints": [
+    "src/main.ts",
+    "src/core/state.ts",
+    "src/core/types.ts",
+    "src/core/ai.ts",
+    "src/core/sam_utils.ts",
+    "src/core/ai.worker.ts",
+    "src/engine/canvas.ts",
+    "src/utils/yolo.ts"
+  ],
+  "out": "docs/api",
+  "name": "SharpTensor API Documentation",
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "theme": "default",
+  "includeVersion": true
+}

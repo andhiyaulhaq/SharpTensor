@@ -43,3 +43,6 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Documentation Artifacts
+docs/api/
