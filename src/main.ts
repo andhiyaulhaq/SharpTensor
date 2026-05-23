@@ -171,6 +171,29 @@ class App {
         this.uiManager.dom.btnSelect.classList.toggle('active', data.mode === 'select');
       }
 
+      if (data.images !== oldData.images || data.currentImageIndex !== oldData.currentImageIndex) {
+        const datasetChanged =
+          data.folderHandle !== oldData.folderHandle ||
+          data.images.length !== oldData.images.length ||
+          (data.images.length > 0 && oldData.images.length > 0 && data.images[0]?.name !== oldData.images[0]?.name);
+
+        if (datasetChanged) {
+          this.workspaceManager.clearCache();
+        }
+
+        this.uiManager.dom.imageCounter.textContent = `${data.images.length > 0 ? data.currentImageIndex + 1 : 0} / ${data.images.length}`;
+        this.uiManager.dom.fileCountBadge.textContent = `${data.images.length} items`;
+        this.imageListManager.render(data.images);
+
+        if (data.currentImageIndex !== oldData.currentImageIndex || datasetChanged) {
+          if (data.currentImageIndex !== -1) {
+            this.workspaceManager.loadImage(data.currentImageIndex);
+          } else {
+            state.set({ annotations: [], currentImageBitmap: null });
+          }
+        }
+      }
+
       if (data.currentTask !== oldData.currentTask) {
         this.uiManager.updateTaskUI(data.currentTask);
         this.fileSystemManager.loadClasses();
