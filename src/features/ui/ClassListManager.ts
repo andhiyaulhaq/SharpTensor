@@ -1,5 +1,5 @@
 import { state } from '../../core/state';
-import { ClassDefinition } from '../../core/types';
+import { ClassDefinition, BoundingBox } from '../../core/types';
 import { YoloHelper } from '../../utils/yolo';
 
 export interface ClassListManagerConfig {
@@ -15,22 +15,33 @@ export class ClassListManager {
     this.config = config;
   }
 
-  render(classes: ClassDefinition[], selectedId: number | null): void {
+  render(classes: ClassDefinition[], selectedId: number | null, annotations: BoundingBox[] = []): void {
+    const counts = annotations.reduce((acc, box) => {
+      acc[box.classId] = (acc[box.classId] || 0) + 1;
+      return acc;
+    }, {} as Record<number, number>);
+
     this.config.container.innerHTML = classes
       .map((cls) => {
         const isSelected = cls.id === selectedId;
         const contrastColor = YoloHelper.getContrastColor(cls.color);
+        const count = counts[cls.id] || 0;
 
-        const itemClasses = `class-item group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${isSelected ? 'shadow-sm' : 'border-transparent text-(--text-secondary) hover:bg-(--bg-hover)'}`;
+        const itemClasses = `class-item group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all border ${isSelected ? 'shadow-sm' : 'border-transparent text-(--text-secondary) hover:bg-(--bg-hover)'}`;
         const itemStyle = isSelected
           ? `background-color: ${cls.color}; color: ${contrastColor}; border-color: rgba(255,255,255,0.2);`
+          : '';
+
+        const badgeHtml = count > 0 
+          ? `<span class="text-[0.65rem] px-1.5 py-0.5 rounded-full font-bold shadow-sm" style="background: ${isSelected ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.05)'}; color: inherit;">${count}</span>` 
           : '';
 
         return `
                 <div class="${itemClasses}" style="${itemStyle}" data-id="${cls.id}">
                     <span class="w-3.5 h-3.5 rounded-md shadow-sm shrink-0" style="background-color: ${isSelected ? contrastColor : cls.color}"></span>
                     <span class="class-name flex-1 font-semibold text-[0.85rem] truncate" title="Double-click to rename">${cls.name}</span>
-                    <span class="text-[0.7rem] px-1.5 py-0.5 rounded border border-white/10 font-mono" style="background: rgba(0,0,0,0.2); color: inherit;">${cls.id}</span>
+                    ${badgeHtml}
+                    <span class="text-[0.7rem] px-1.5 py-0.5 rounded border border-white/10 font-mono opacity-50" style="background: rgba(0,0,0,0.2); color: inherit;" title="Class ID">${cls.id}</span>
                     <button class="btn-delete-class opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-[1.2rem] leading-none px-1" style="color: inherit;" title="Delete Class">&times;</button>
                 </div>
             `;

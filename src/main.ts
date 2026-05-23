@@ -7,7 +7,6 @@ import './components';
 import { TourManager } from './features/tour/TourManager';
 import { ImageListManager } from './features/ui/ImageListManager';
 import { ClassListManager } from './features/ui/ClassListManager';
-import { AnnotationListManager } from './features/ui/AnnotationListManager';
 import { FileSystemManager } from './features/fs/FileSystemManager';
 import { AIOrchestrator } from './features/ai/AIOrchestrator';
 import './components/index';
@@ -29,8 +28,6 @@ class App {
     fileCountBadge: HTMLElement;
     imageList: HTMLElement;
     classList: HTMLElement;
-    annotationList: HTMLElement;
-    boxCountBadge: HTMLElement;
     statusMessage: HTMLElement;
     zoomDisplay: HTMLElement;
     btnAddClass: HTMLButtonElement;
@@ -54,7 +51,6 @@ class App {
   private tourManager!: TourManager;
   private imageListManager!: ImageListManager;
   private classListManager!: ClassListManager;
-  private annotationListManager!: AnnotationListManager;
   private fileSystemManager!: FileSystemManager;
   private aiOrchestrator!: AIOrchestrator;
 
@@ -82,10 +78,12 @@ class App {
     this.imageListManager = new ImageListManager(this.dom.imageList);
     this.classListManager = new ClassListManager({
       container: this.dom.classList,
-      onSaveClasses: (classes) => this.fileSystemManager.saveClasses(classes),
-      onDeleteClass: (id) => this.handleDeleteClass(id)
+      onSaveClasses: (c) => state.set({ classes: c }),
+      onDeleteClass: (id) => {
+        const newClasses = state.data.classes.filter((c) => c.id !== id);
+        state.set({ classes: newClasses, selectedClassId: newClasses[0]?.id || null });
+      },
     });
-    this.annotationListManager = new AnnotationListManager(this.dom.annotationList);
 
     this.aiOrchestrator = new AIOrchestrator({
       fileSystemManager: this.fileSystemManager,
@@ -164,8 +162,6 @@ class App {
       fileCountBadge: getEl<HTMLElement>('file-count'),
       imageList: getEl<HTMLElement>('image-list'),
       classList: getEl<HTMLElement>('class-list'),
-      annotationList: getEl<HTMLElement>('annotation-list'),
-      boxCountBadge: getEl<HTMLElement>('box-count'),
       statusMessage: getEl<HTMLElement>('status-message'),
       zoomDisplay: getEl<HTMLElement>('zoom-display'),
       btnAddClass: getEl<HTMLButtonElement>('btn-add-class'),
@@ -362,12 +358,15 @@ class App {
 
 
 
-      if (data.classes !== oldData.classes || data.selectedClassId !== oldData.selectedClassId) {
-        this.classListManager.render(data.classes, data.selectedClassId);
+      if (
+        data.classes !== oldData.classes || 
+        data.selectedClassId !== oldData.selectedClassId ||
+        data.annotations !== oldData.annotations
+      ) {
+        this.classListManager.render(data.classes, data.selectedClassId, data.annotations);
       }
 
       if (data.annotations !== oldData.annotations) {
-        this.annotationListManager.render(data.annotations, data.selectedBoxId);
         if (this.canvasEngine) this.canvasEngine.draw();
 
         if (data.currentImageIndex !== -1) {
@@ -377,12 +376,9 @@ class App {
             else cached.segAnnos = data.annotations;
           }
         }
-      } else if (data.selectedBoxId !== oldData.selectedBoxId) {
-        this.annotationListManager.updateSelection(data.selectedBoxId);
       }
 
       if (data.annotations !== oldData.annotations && !data.isAutoLabeling) {
-        this.dom.boxCountBadge.textContent = data.annotations.length.toString();
 
         const newImages = [...data.images];
         const currentImg = newImages[data.currentImageIndex];

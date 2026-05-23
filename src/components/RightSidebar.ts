@@ -60,14 +60,6 @@ export class RightSidebar extends HTMLElement {
           </div>
         </st-sidebar-section>
 
-        <st-sidebar-section title="Annotations" badge-id="box-count" badge-text="0">
-          <div id="annotation-list" class="flex flex-col gap-1">
-            <div class="text-(--text-muted) text-[0.8rem] italic py-2 text-center">
-              No annotations yet
-            </div>
-          </div>
-        </st-sidebar-section>
-
         <st-hotkeys-guide></st-hotkeys-guide>
 
         <div class="py-6 mt-auto">
