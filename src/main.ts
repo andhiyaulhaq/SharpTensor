@@ -36,7 +36,6 @@ class App {
 
   async bootstrap() {
     this.canvasEngine = new CanvasEngine('main-canvas');
-    this.canvasEngine.startRenderLoop();
 
     this.fileSystemManager = new FileSystemManager({
       onStatusUpdate: (msg, isError) => this.uiManager.updateStatus(msg, isError)
