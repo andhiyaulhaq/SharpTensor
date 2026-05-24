@@ -141,7 +141,7 @@ export class FileSystemManager {
   }
 
   async loadAnnotations(imgName: string, bitmap: ImageBitmap): Promise<BoundingBox[]> {
-    const txtName = imgName.replace(/\\.[^/.]+$/, '') + '.txt';
+    const txtName = imgName.replace(/\.[^/.]+$/, '') + '.txt';
     const isSeg = state.data.currentTask === 'segmentation';
     const folder = isSeg ? state.data.labelSegFolderHandle : state.data.labelFolderHandle;
     if (!folder) return [];
@@ -201,7 +201,7 @@ export class FileSystemManager {
     this._saveQueue = this._saveQueue.then(async () => {
       const imgInfo = state.data.images[index];
       if (!imgInfo) return;
-      const txtName = imgInfo.name.replace(/\\.[^/.]+$/, '') + '.txt';
+      const txtName = imgInfo.name.replace(/\.[^/.]+$/, '') + '.txt';
       const isSeg = state.data.currentTask === 'segmentation';
       const folder = isSeg ? state.data.labelSegFolderHandle : state.data.labelFolderHandle;
       if (!folder) return;
@@ -267,7 +267,7 @@ export class FileSystemManager {
     if (!labelFolderHandle) return;
 
     for (const imgInfo of images) {
-      const txtName = imgInfo.name.replace(/\\.[^/.]+$/, '') + '.txt';
+      const txtName = imgInfo.name.replace(/\.[^/.]+$/, '') + '.txt';
       try {
         const fileHandle = await labelFolderHandle.getFileHandle(txtName);
         const file = await fileHandle.getFile();
