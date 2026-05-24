@@ -85,8 +85,10 @@ export class AppModal extends HTMLElement {
     const checkboxLabelEl = this.querySelector('.modal-checkbox-label');
     const confirmBtn = this.querySelector('.modal-confirm') as HTMLButtonElement;
     const cancelBtn = this.querySelector('.modal-cancel') as HTMLButtonElement;
+    const progressContainer = this.querySelector('.modal-progress-container') as HTMLElement;
 
     if (msgEl) msgEl.textContent = params.message;
+    if (progressContainer) progressContainer.classList.add('hidden');
     
     if (inputEl) {
       if (params.inputPlaceholder !== undefined && params.inputPlaceholder !== '') {

@@ -59,11 +59,56 @@ export class FileSystemManager {
         mode: 'select',
       });
       console.log('[FS] State updated with images array. End of handleOpenFolder.');
+      
+      // Perform initial sync of image statuses
+      await this.syncImageStatuses();
     } catch (err: any) {
       console.error('[FS ERROR] Failed to open folder:', err);
       console.error('[FS ERROR] Error Name:', err.name);
       console.error('[FS ERROR] Error Message:', err.message);
       this.onStatusUpdate('Access denied or folder empty', true);
+    }
+  }
+
+  async syncImageStatuses(): Promise<void> {
+    const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = state.data;
+    const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
+    if (!targetFolder || images.length === 0) return;
+
+    const newImages = [...images];
+    let changed = false;
+
+    console.log(`[FS] syncImageStatuses started. Images count: ${images.length}, currentTask: ${currentTask}`);
+    
+    const existingFiles = new Set<string>();
+    try {
+      // @ts-ignore
+      for await (const [name, handle] of targetFolder.entries()) {
+        if (handle.kind === 'file' && name.endsWith('.txt')) {
+          existingFiles.add(name);
+        }
+      }
+      console.log(`[FS] syncImageStatuses found ${existingFiles.size} .txt files using entries()`, Array.from(existingFiles));
+    } catch (e) {
+      console.warn('[FS] Failed to read target folder with entries()', e);
+    }
+
+    for (const img of newImages) {
+      const txtName1 = img.name.replace(/\.[^/.]+$/, '') + '.txt';
+      const txtName2 = img.name + '.txt';
+      const shouldBeLabeled = existingFiles.has(txtName1) || existingFiles.has(txtName2);
+      const expectedStatus = shouldBeLabeled ? 'labeled' : 'pending';
+      
+      if (img.status !== expectedStatus) {
+        img.status = expectedStatus;
+        changed = true;
+      }
+    }
+    
+    console.log(`[FS] syncImageStatuses complete. Changed state? ${changed}`);
+
+    if (changed) {
+      state.set({ images: newImages });
     }
   }
 
@@ -102,7 +147,12 @@ export class FileSystemManager {
     if (!folder) return [];
 
     try {
-      const fileHandle = await folder.getFileHandle(txtName);
+      let fileHandle;
+      try {
+        fileHandle = await folder.getFileHandle(txtName);
+      } catch (e) {
+        fileHandle = await folder.getFileHandle(imgName + '.txt');
+      }
       const file = await fileHandle.getFile();
       const content = await file.text();
       return content
@@ -129,6 +179,17 @@ export class FileSystemManager {
     }, 1000);
   }
 
+  clearPendingSaves(): void {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+  }
+
+  async waitForSaves(): Promise<void> {
+    await this._saveQueue;
+  }
+
   async saveAnnotations(
     index: number,
     annotations: BoundingBox[],
@@ -146,13 +207,23 @@ export class FileSystemManager {
       if (!folder) return;
 
       try {
+        if (annotations.length === 0) {
+          try {
+            await folder.removeEntry(txtName);
+          } catch (e) {
+            // Ignore if file already doesn't exist
+          }
+          if (!skipUI) this.onStatusUpdate(`Cleared ${isSeg ? 'Seg' : 'Det'}: ${txtName}`);
+          return;
+        }
+
         const content = annotations
           .map((box) =>
             isSeg
               ? YoloHelper.toYoloSeg(box, bitmap.width, bitmap.height)
               : YoloHelper.toYolo(box, bitmap.width, bitmap.height)
           )
-          .join('\\n');
+          .join('\n');
 
         const fileHandle = await folder.getFileHandle(txtName, { create: true });
         const writable = await fileHandle.createWritable();

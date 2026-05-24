@@ -229,11 +229,15 @@ export class WorkspaceManager {
   updateCacheForCurrentTask(annotations: any[]): void {
     const { currentImageIndex, currentTask } = state.data;
     if (currentImageIndex !== -1) {
-      const cached = this.imageCache.get(currentImageIndex);
-      if (cached) {
-        if (currentTask === 'detection') cached.detAnnos = annotations;
-        else cached.segAnnos = annotations;
-      }
+      this.updateCacheForIndex(currentImageIndex, annotations, currentTask);
+    }
+  }
+
+  updateCacheForIndex(index: number, annotations: any[], task: 'detection' | 'segmentation'): void {
+    const cached = this.imageCache.get(index);
+    if (cached) {
+      if (task === 'detection') cached.detAnnos = annotations;
+      else cached.segAnnos = annotations;
     }
   }
 

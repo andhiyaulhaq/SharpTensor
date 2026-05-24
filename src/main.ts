@@ -93,7 +93,8 @@ class App {
       onShowModal: (params) => this.uiManager.showModal(params),
       modalDom: this.uiManager.dom.modal,
       onRenderImageList: (images) => this.imageListManager.render(images),
-      onLoadImage: (idx) => this.workspaceManager.loadImage(idx)
+      onLoadImage: (idx) => this.workspaceManager.loadImage(idx),
+      onUpdateCache: (idx, annos) => this.workspaceManager.updateCacheForIndex(idx, annos, state.data.currentTask)
     });
 
     this.initStateListeners();
@@ -197,6 +198,7 @@ class App {
         this.uiManager.updateTaskUI(data.currentTask);
         this.fileSystemManager.loadClasses();
         this.workspaceManager.syncTaskAnnotations();
+        this.fileSystemManager.syncImageStatuses();
       }
 
       if (
@@ -460,15 +462,30 @@ class App {
           const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
           if (!targetFolder) return;
 
-          for (const img of images) {
-            const txtName = img.name.replace(/\.[^/.]+$/, '') + '.txt';
-            try {
-              await targetFolder.removeEntry(txtName);
-            } catch (e) { }
-            img.status = 'pending';
+          this.fileSystemManager.clearPendingSaves();
+          await this.fileSystemManager.waitForSaves();
+
+          // 1. Update UI state and flush cache for all active images
+          for (let i = 0; i < images.length; i++) {
+            const img = images[i];
+            if (img) img.status = 'pending';
+            this.workspaceManager.updateCacheForIndex(i, [], currentTask);
           }
 
-          this.workspaceManager.clearCache();
+          // 2. Purge all .txt files in the target folder directly
+          for await (const entry of (targetFolder as any).values()) {
+            if (entry.kind === 'file' && entry.name.endsWith('.txt')) {
+              if (entry.name === 'classes.txt' && !clearClasses) continue;
+
+              try {
+                const fileHandle = await targetFolder.getFileHandle(entry.name);
+                const writable = await fileHandle.createWritable();
+                await writable.write('');
+                await writable.close();
+                await targetFolder.removeEntry(entry.name);
+              } catch (e) { }
+            }
+          }
 
           const resetState: any = {
             annotations: [],
@@ -479,12 +496,6 @@ class App {
           if (clearClasses) {
             resetState.classes = [];
             resetState.selectedClassId = null;
-            try {
-              const classesFile = await targetFolder.getFileHandle('classes.txt', { create: true });
-              const writable = await classesFile.createWritable();
-              await writable.write('');
-              await writable.close();
-            } catch (e) { }
           }
 
           state.set(resetState);

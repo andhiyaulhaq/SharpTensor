@@ -12,6 +12,7 @@ export interface AIOrchestratorConfig {
   modalDom: HTMLElement;
   onRenderImageList: (images: ImageEntry[]) => void;
   onLoadImage: (idx: number) => Promise<void>;
+  onUpdateCache: (idx: number, annotations: BoundingBox[]) => void;
 }
 
 export class AIOrchestrator {
@@ -138,6 +139,8 @@ export class AIOrchestrator {
 
               const merged = [...existingAnnotations, ...mapped];
               await this.config.fileSystemManager.saveAnnotations(idx, merged, bitmap, true);
+
+              this.config.onUpdateCache(idx, merged);
 
               if (idx === state.data.currentImageIndex) {
                 state.set({ annotations: merged });
