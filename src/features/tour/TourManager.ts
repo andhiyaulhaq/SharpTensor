@@ -115,8 +115,8 @@ export class TourManager {
     const rect = targetEl.getBoundingClientRect();
     
     // Determine positioning based on where the element is
-    let left = 0;
-    let top = 0;
+    let left: number;
+    let top: number;
 
     if (rect.left > window.innerWidth / 2) {
       // Position to the left of the element
