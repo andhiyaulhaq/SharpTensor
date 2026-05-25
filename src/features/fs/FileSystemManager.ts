@@ -21,16 +21,18 @@ export class FileSystemManager {
       console.log('[FS] Requesting directory picker...');
       const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
       console.log('[FS] Directory picker succeeded. Handle:', handle.name);
-      
+
       state.set({ loading: true, statusMessage: 'Reading folder...' });
 
       console.log('[FS] Attempting to get/create "label" directory...');
-      const labelHandle = await handle.getDirectoryHandle('label', { create: true });
-      console.log('[FS] "label" directory ready');
+      const labelDir = await handle.getDirectoryHandle('label', { create: true });
+      const labelHandle = await labelDir.getDirectoryHandle('yolo', { create: true });
+      console.log('[FS] "label/yolo" directory ready');
 
       console.log('[FS] Attempting to get/create "label-seg" directory...');
-      const labelSegHandle = await handle.getDirectoryHandle('label-seg', { create: true });
-      console.log('[FS] "label-seg" directory ready');
+      const labelSegDir = await handle.getDirectoryHandle('label-seg', { create: true });
+      const labelSegHandle = await labelSegDir.getDirectoryHandle('yolo', { create: true });
+      console.log('[FS] "label-seg/yolo" directory ready');
 
       state.set({
         folderHandle: handle,
@@ -49,7 +51,7 @@ export class FileSystemManager {
         }
       }
       console.log(`[FS] Scan complete. Found ${images.length} images directly in root.`);
-      
+
       images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
       state.set({
@@ -59,7 +61,7 @@ export class FileSystemManager {
         mode: 'select',
       });
       console.log('[FS] State updated with images array. End of handleOpenFolder.');
-      
+
       // Perform initial sync of image statuses
       await this.syncImageStatuses();
     } catch (err: any) {
@@ -78,8 +80,10 @@ export class FileSystemManager {
     const newImages = [...images];
     let changed = false;
 
-    console.log(`[FS] syncImageStatuses started. Images count: ${images.length}, currentTask: ${currentTask}`);
-    
+    console.log(
+      `[FS] syncImageStatuses started. Images count: ${images.length}, currentTask: ${currentTask}`
+    );
+
     const existingFiles = new Set<string>();
     try {
       // @ts-expect-error type override
@@ -88,7 +92,10 @@ export class FileSystemManager {
           existingFiles.add(name);
         }
       }
-      console.log(`[FS] syncImageStatuses found ${existingFiles.size} .txt files using entries()`, Array.from(existingFiles));
+      console.log(
+        `[FS] syncImageStatuses found ${existingFiles.size} .txt files using entries()`,
+        Array.from(existingFiles)
+      );
     } catch (e) {
       console.warn('[FS] Failed to read target folder with entries()', e);
     }
@@ -98,13 +105,13 @@ export class FileSystemManager {
       const txtName2 = img.name + '.txt';
       const shouldBeLabeled = existingFiles.has(txtName1) || existingFiles.has(txtName2);
       const expectedStatus = shouldBeLabeled ? 'labeled' : 'pending';
-      
+
       if (img.status !== expectedStatus) {
         img.status = expectedStatus;
         changed = true;
       }
     }
-    
+
     console.log(`[FS] syncImageStatuses complete. Changed state? ${changed}`);
 
     if (changed) {

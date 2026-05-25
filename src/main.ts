@@ -8,6 +8,8 @@ import { TourManager } from './features/tour/TourManager';
 import { ImageListManager } from './features/ui/ImageListManager';
 import { ClassListManager } from './features/ui/ClassListManager';
 import { FileSystemManager } from './features/fs/FileSystemManager';
+import { ExportManager } from './features/fs/ExportManager';
+import { ExportFormat } from './utils/exporters';
 import { AIOrchestrator } from './features/ai/AIOrchestrator';
 import { UIManager } from './features/ui/UIManager';
 import { KeyboardManager } from './features/ui/KeyboardManager';
@@ -21,6 +23,7 @@ class App {
   private imageListManager!: ImageListManager;
   private classListManager!: ClassListManager;
   private fileSystemManager!: FileSystemManager;
+  private exportManager!: ExportManager;
   private aiOrchestrator!: AIOrchestrator;
   private uiManager!: UIManager;
   private keyboardManager!: KeyboardManager;
@@ -38,8 +41,10 @@ class App {
     this.canvasEngine = new CanvasEngine('main-canvas');
 
     this.fileSystemManager = new FileSystemManager({
-      onStatusUpdate: (msg, isError) => this.uiManager.updateStatus(msg, isError)
+      onStatusUpdate: (msg, isError) => this.uiManager.updateStatus(msg, isError),
     });
+
+    this.exportManager = new ExportManager(this.fileSystemManager);
 
     this.uiManager = new UIManager({
       onOpenFolder: () => this.fileSystemManager.handleOpenFolder(),
@@ -49,13 +54,14 @@ class App {
       onClearAllAnnotations: () => this.handleClearAllAnnotations(),
       onNextImage: () => this.workspaceManager.nextImage(),
       onPrevImage: () => this.workspaceManager.prevImage(),
-      onPromptForFirstClass: (e) => this.promptForFirstClass(e)
+      onPromptForFirstClass: (e) => this.promptForFirstClass(e),
+      onExport: (format) => this.handleExport(format),
     });
 
     this.workspaceManager = new WorkspaceManager({
       fileSystemManager: this.fileSystemManager,
       canvasEngine: this.canvasEngine,
-      onUpdateStatus: (msg, isError) => this.uiManager.updateStatus(msg, isError)
+      onUpdateStatus: (msg, isError) => this.uiManager.updateStatus(msg, isError),
     });
 
     this.keyboardManager = new KeyboardManager({
@@ -65,11 +71,11 @@ class App {
       onConfirmMagicMask: () => this.confirmMagicMask(),
       onResetMagicInteraction: () => this.resetMagicInteraction(),
       onDeleteSelectedBox: () => this.deleteSelectedBox(),
-      onAssignClass: (idx) => this.classListManager.assignClassToSelected(idx)
+      onAssignClass: (idx) => this.classListManager.assignClassToSelected(idx),
     });
 
     this.imageListManager = new ImageListManager(this.uiManager.dom.imageList);
-    
+
     this.classListManager = new ClassListManager({
       container: this.uiManager.dom.classList,
       onSaveClasses: (c) => state.set({ classes: c }),
@@ -80,9 +86,9 @@ class App {
       dom: {
         btnAutoLabelAll: this.uiManager.dom.btnAutoLabelAll,
         btnDraw: this.uiManager.dom.btnDraw,
-        btnSelect: this.uiManager.dom.btnSelect
+        btnSelect: this.uiManager.dom.btnSelect,
       },
-      onStatusUpdate: (msg) => this.uiManager.updateStatus(msg)
+      onStatusUpdate: (msg) => this.uiManager.updateStatus(msg),
     });
 
     this.aiOrchestrator = new AIOrchestrator({
@@ -94,7 +100,8 @@ class App {
       modalDom: this.uiManager.dom.modal,
       onRenderImageList: (images) => this.imageListManager.render(images),
       onLoadImage: (idx) => this.workspaceManager.loadImage(idx),
-      onUpdateCache: (idx, annos) => this.workspaceManager.updateCacheForIndex(idx, annos, state.data.currentTask)
+      onUpdateCache: (idx, annos) =>
+        this.workspaceManager.updateCacheForIndex(idx, annos, state.data.currentTask),
     });
 
     this.initStateListeners();
@@ -107,7 +114,8 @@ class App {
         const action = (e as CustomEvent).detail;
         if (action === 'open') this.fileSystemManager.handleOpenFolder();
         else if (action === 'demo') this.handleTryDemo();
-        else if (action === 'github') window.open('https://github.com/andhiyaulhaq/SharpTensor', '_blank');
+        else if (action === 'github')
+          window.open('https://github.com/andhiyaulhaq/SharpTensor', '_blank');
       });
     }
 
@@ -175,7 +183,9 @@ class App {
         const datasetChanged =
           data.folderHandle !== oldData.folderHandle ||
           data.images.length !== oldData.images.length ||
-          (data.images.length > 0 && oldData.images.length > 0 && data.images[0]?.name !== oldData.images[0]?.name);
+          (data.images.length > 0 &&
+            oldData.images.length > 0 &&
+            data.images[0]?.name !== oldData.images[0]?.name);
 
         if (datasetChanged) {
           this.workspaceManager.clearCache();
@@ -202,7 +212,7 @@ class App {
       }
 
       if (
-        data.classes !== oldData.classes || 
+        data.classes !== oldData.classes ||
         data.selectedClassId !== oldData.selectedClassId ||
         data.annotations !== oldData.annotations
       ) {
@@ -414,7 +424,8 @@ class App {
     const { boxId } = e.detail;
     this.uiManager.showModal({
       title: 'Define First Class',
-      message: 'You just drew a box! What is the class name for this object? (e.g. "car", "defect")',
+      message:
+        'You just drew a box! What is the class name for this object? (e.g. "car", "defect")',
       inputPlaceholder: 'Class name...',
       confirmText: 'Create Class',
       cancelText: 'Cancel Box',
@@ -449,7 +460,8 @@ class App {
   async handleClearAllAnnotations(): Promise<void> {
     this.uiManager.showModal({
       title: '⚠️ NUCLEAR OPTION: Purge Dataset',
-      message: '🛑 CRITICAL: You are about to initiate a final purge of the current dataset. This will delete all annotation files. You can optionally reset your class definitions as well.',
+      message:
+        '🛑 CRITICAL: You are about to initiate a final purge of the current dataset. This will delete all annotation files. You can optionally reset your class definitions as well.',
       confirmText: 'Execute Purge',
       cancelText: 'Abort',
       checkboxLabel: 'Also reset class definitions (classes.txt)',
@@ -459,7 +471,8 @@ class App {
           state.set({ loading: true, statusMessage: '🧹 Purging data...' });
           const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = state.data;
 
-          const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
+          const targetFolder =
+            currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
           if (!targetFolder) return;
 
           this.fileSystemManager.clearPendingSaves();
@@ -483,7 +496,7 @@ class App {
                 await writable.write('');
                 await writable.close();
                 await targetFolder.removeEntry(entry.name);
-              } catch (e) { }
+              } catch (e) {}
             }
           }
 
@@ -517,6 +530,61 @@ class App {
     if (byomPanel && typeof byomPanel.open === 'function') {
       byomPanel.open();
     }
+  }
+
+  async handleExport(format: ExportFormat): Promise<void> {
+    const { folderHandle, images, classes, currentTask } = state.data;
+    if (!folderHandle || images.length === 0) return;
+
+    this.uiManager.showModal({
+      title: 'Export Annotations',
+      message: this.buildExportMessage(format, images.length, currentTask),
+      confirmText: 'Export',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        let destHandle: FileSystemDirectoryHandle;
+        try {
+          const taskDirName = currentTask === 'detection' ? 'label' : 'label-seg';
+          const taskDir = await folderHandle.getDirectoryHandle(taskDirName, { create: true });
+          destHandle = await taskDir.getDirectoryHandle(format, { create: true });
+        } catch {
+          this.uiManager.updateStatus('Failed to create export directory', true);
+          return;
+        }
+
+        this.uiManager.updateStatus(`Exporting to ${format.toUpperCase()}...`);
+        state.set({ loading: true });
+
+        try {
+          const result = await this.exportManager.exportAll(
+            format,
+            images,
+            classes,
+            this.workspaceManager.getImageCache(),
+            destHandle
+          );
+          this.uiManager.updateStatus(
+            `Exported ${result.annotationCount} annotations across ${result.imageCount} images (${format.toUpperCase()})`
+          );
+        } catch (err) {
+          console.error('Export failed:', err);
+          this.uiManager.updateStatus('Export failed', true);
+        } finally {
+          state.set({ loading: false });
+        }
+      },
+    });
+  }
+
+  private buildExportMessage(format: ExportFormat, imageCount: number, task: string): string {
+    const formatNames: Record<ExportFormat, string> = {
+      yolo: 'YOLO .txt',
+      coco: 'COCO JSON',
+      voc: 'Pascal VOC XML',
+      csv: 'CSV',
+    };
+    const taskDir = task === 'detection' ? 'label' : 'label-seg';
+    return `Export annotations across ${imageCount} images as ${formatNames[format]}?\n\nFiles will be written to:\n${taskDir}/${format}/`;
   }
 
   resetMagicInteraction(): void {

@@ -1,4 +1,5 @@
 import { state } from '../../core/state';
+import { ExportFormat } from '../../utils/exporters';
 
 export interface UIManagerConfig {
   onOpenFolder: () => void;
@@ -9,6 +10,7 @@ export interface UIManagerConfig {
   onNextImage: () => void;
   onPrevImage: () => void;
   onPromptForFirstClass: (e: CustomEvent<{ boxId?: number }>) => void;
+  onExport: (format: ExportFormat) => void;
 }
 
 export class UIManager {
@@ -19,6 +21,7 @@ export class UIManager {
     btnPrev: HTMLButtonElement;
     btnNext: HTMLButtonElement;
     btnExport: HTMLButtonElement;
+    exportMenu: HTMLElement;
     imageCounter: HTMLElement;
     fileCountBadge: HTMLElement;
     imageList: HTMLElement;
@@ -55,6 +58,7 @@ export class UIManager {
       btnPrev: getEl<HTMLButtonElement>('btn-prev'),
       btnNext: getEl<HTMLButtonElement>('btn-next'),
       btnExport: getEl<HTMLButtonElement>('btn-export'),
+      exportMenu: getEl<HTMLElement>('export-menu'),
       imageCounter: getEl<HTMLElement>('image-counter'),
       fileCountBadge: getEl<HTMLElement>('file-count'),
       imageList: getEl<HTMLElement>('image-list'),
@@ -92,7 +96,7 @@ export class UIManager {
 
     this.dom.btnAddClass.addEventListener('click', () => this.config.onAddClass());
     this.dom.btnLoadModel.addEventListener('click', () => this.config.onLoadCustomModel());
-    
+
     this.dom.btnAutoLabelAll.addEventListener('click', async () => {
       const btn = this.dom.btnAutoLabelAll;
       const originalHtml = btn.innerHTML;
@@ -103,9 +107,9 @@ export class UIManager {
         </svg>
         <span>Processing...</span>
       `;
-      
+
       await this.config.onAutoLabel();
-      
+
       btn.innerHTML = originalHtml;
       btn.disabled = false;
     });
@@ -116,6 +120,39 @@ export class UIManager {
 
     this.dom.btnNext.addEventListener('click', () => this.config.onNextImage());
     this.dom.btnPrev.addEventListener('click', () => this.config.onPrevImage());
+
+    this.dom.btnExport.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleExportMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const option = target.closest('[data-format]') as HTMLElement | null;
+      if (option) {
+        const format = option.getAttribute('data-format') as ExportFormat;
+        this.closeExportMenu();
+        this.config.onExport(format);
+      } else if (!this.dom.btnExport.contains(target)) {
+        this.closeExportMenu();
+      }
+    });
+  }
+
+  toggleExportMenu(): void {
+    if (this.dom.exportMenu.classList.contains('hidden')) {
+      this.openExportMenu();
+    } else {
+      this.closeExportMenu();
+    }
+  }
+
+  openExportMenu(): void {
+    this.dom.exportMenu.classList.remove('hidden');
+  }
+
+  closeExportMenu(): void {
+    this.dom.exportMenu.classList.add('hidden');
   }
 
   updateStatus(msg: string, isError = false): void {
