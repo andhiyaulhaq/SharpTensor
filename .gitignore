@@ -46,3 +46,4 @@ playwright/.cache/
 
 # Documentation Artifacts
 docs/api/
+_project-template.md
