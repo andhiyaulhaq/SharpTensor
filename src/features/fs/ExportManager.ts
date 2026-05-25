@@ -13,15 +13,12 @@ import {
 export class ExportManager {
   constructor(private fileSystemManager: FileSystemManager) {}
 
-  async exportAll(
-    format: ExportFormat,
+  async collectPayloads(
     images: ImageEntry[],
     classes: AnnotationClass[],
-    imageCache: Map<number, ImageCacheEntry>,
-    destHandle: FileSystemDirectoryHandle
-  ): Promise<{ imageCount: number; annotationCount: number }> {
+    imageCache: Map<number, ImageCacheEntry>
+  ): Promise<ExportPayload[]> {
     const payloads: ExportPayload[] = [];
-    let totalAnnos = 0;
 
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
@@ -56,8 +53,21 @@ export class ExportManager {
         classes,
         image: { name: img.name, width, height },
       });
-      totalAnnos += annotations.length;
     }
+
+    return payloads;
+  }
+
+  async exportAll(
+    format: ExportFormat,
+    images: ImageEntry[],
+    classes: AnnotationClass[],
+    imageCache: Map<number, ImageCacheEntry>,
+    destHandle: FileSystemDirectoryHandle
+  ): Promise<{ imageCount: number; annotationCount: number }> {
+    const payloads = await this.collectPayloads(images, classes, imageCache);
+    let totalAnnos = 0;
+    for (const p of payloads) totalAnnos += p.annotations.length;
 
     switch (format) {
       case 'yolo': {

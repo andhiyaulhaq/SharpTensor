@@ -78,6 +78,16 @@ export class AppHeader extends HTMLElement {
               </svg>
             </button>
             <div id="export-menu" class="hidden export-menu">
+              <div class="export-option" data-format="yolo">
+                <svg class="export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <div>
+                  <div class="export-label">YOLO .txt</div>
+                  <div class="export-desc">One .txt per image, normalized coords</div>
+                </div>
+              </div>
               <div class="export-option" data-format="coco">
                 <svg class="export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />

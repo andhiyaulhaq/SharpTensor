@@ -9,13 +9,26 @@ import { ImageListManager } from './features/ui/ImageListManager';
 import { ClassListManager } from './features/ui/ClassListManager';
 import { FileSystemManager } from './features/fs/FileSystemManager';
 import { ExportManager } from './features/fs/ExportManager';
-import { ExportFormat } from './utils/exporters';
+import {
+  ExportFormat,
+  ExportPayload,
+  exportYOLO,
+  exportCOCO,
+  exportVOC,
+  exportCSV,
+} from './utils/exporters';
 import { AIOrchestrator } from './features/ai/AIOrchestrator';
 import { UIManager } from './features/ui/UIManager';
 import { KeyboardManager } from './features/ui/KeyboardManager';
 import { WorkspaceManager } from './features/workspace/WorkspaceManager';
 import './components/index';
-import { BoundingBox, ClassDefinition, ImageEntry, ImageCacheEntry } from './core/types';
+import {
+  BoundingBox,
+  ClassDefinition,
+  ImageEntry,
+  ImageCacheEntry,
+  AnnotationClass,
+} from './core/types';
 
 class App {
   private canvasEngine!: CanvasEngine;
@@ -534,7 +547,12 @@ class App {
 
   async handleExport(format: ExportFormat): Promise<void> {
     const { folderHandle, images, classes, currentTask } = state.data;
-    if (!folderHandle || images.length === 0) return;
+    if (images.length === 0) return;
+
+    if (!folderHandle) {
+      this.handleDownloadExport(format);
+      return;
+    }
 
     this.uiManager.showModal({
       title: 'Export Annotations',
@@ -574,6 +592,103 @@ class App {
         }
       },
     });
+  }
+
+  private async handleDownloadExport(format: ExportFormat): Promise<void> {
+    const { images, classes } = state.data;
+
+    const formatNames: Record<ExportFormat, string> = {
+      yolo: 'YOLO .txt',
+      coco: 'COCO JSON',
+      voc: 'Pascal VOC XML',
+      csv: 'CSV',
+    };
+
+    this.uiManager.showModal({
+      title: 'Download Annotations',
+      message: `Download annotations from ${images.length} image(s) as ${formatNames[format]}?`,
+      confirmText: 'Download',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        state.set({ loading: true });
+        try {
+          const payloads = await this.exportManager.collectPayloads(
+            images,
+            classes,
+            this.workspaceManager.getImageCache()
+          );
+          const files = this.buildDownloadFiles(format, payloads, classes);
+          for (const file of files) {
+            this.triggerDownload(file.name, file.content, file.type);
+          }
+          this.uiManager.updateStatus(
+            `Downloaded ${files.length} file(s) (${formatNames[format]})`
+          );
+        } catch (err) {
+          console.error('Download failed:', err);
+          this.uiManager.updateStatus('Download failed', true);
+        } finally {
+          state.set({ loading: false });
+        }
+      },
+    });
+  }
+
+  private buildDownloadFiles(
+    format: ExportFormat,
+    payloads: ExportPayload[],
+    classes: AnnotationClass[]
+  ): { name: string; content: string; type: string }[] {
+    const mime: Record<string, string> = {
+      json: 'application/json',
+      xml: 'application/xml',
+      csv: 'text/csv',
+      txt: 'text/plain',
+    };
+
+    const mt = (ext: string): string => mime[ext] ?? 'text/plain';
+
+    switch (format) {
+      case 'yolo':
+        return [
+          ...payloads.map((p) => ({
+            name: p.image.name.replace(/\.[^/.]+$/, '') + '.txt',
+            content: exportYOLO(p),
+            type: mt('txt'),
+          })),
+          ...(classes.length > 0
+            ? [
+                {
+                  name: 'classes.txt',
+                  content: classes.map((c) => c.name).join('\n'),
+                  type: mt('txt'),
+                },
+              ]
+            : []),
+        ];
+      case 'coco':
+        return [{ name: 'annotations.json', content: exportCOCO(payloads), type: mt('json') }];
+      case 'voc':
+        return payloads.map((p) => ({
+          name: p.image.name.replace(/\.[^/.]+$/, '') + '.xml',
+          content: exportVOC(p),
+          type: mt('xml'),
+        }));
+      case 'csv':
+        return [{ name: 'annotations.csv', content: exportCSV(payloads), type: mt('csv') }];
+    }
+  }
+
+  private triggerDownload(fileName: string, content: string, mimeType = 'text/plain'): void {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   private buildExportMessage(format: ExportFormat, imageCount: number, task: string): string {
