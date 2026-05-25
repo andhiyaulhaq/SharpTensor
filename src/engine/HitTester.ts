@@ -16,11 +16,11 @@ export class HitTester {
 
       // 1. Check Label Hit (even if not selected)
       const name = cls ? cls.name : 'Pending...';
-      const fontSize = 18 / zoom;
+      const fontSize = 14 / zoom;
       this.ctx.font = `600 ${fontSize}px 'Inter', system-ui, sans-serif`;
-      const padding = 6 / zoom;
-      const chevronSize = 8 / zoom;
-      const chevronGap = 8 / zoom;
+      const padding = 5 / zoom;
+      const chevronSize = 6 / zoom;
+      const chevronGap = 6 / zoom;
 
       const textWidth = this.ctx.measureText(name).width;
       const bgWidth = textWidth + padding * 2 + chevronSize + chevronGap;

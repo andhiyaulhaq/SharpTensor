@@ -196,12 +196,12 @@ export class Renderer {
   }
 
   private drawLabel(box: BoundingBox, name: string, color: string): void {
-    const fontSize = 18 / state.data.zoom;
+    const fontSize = 14 / state.data.zoom;
     this.ctx.font = `600 ${fontSize}px 'Inter', system-ui, sans-serif`;
 
-    const padding = 6 / state.data.zoom;
-    const chevronSize = 8 / state.data.zoom;
-    const chevronGap = 8 / state.data.zoom;
+    const padding = 5 / state.data.zoom;
+    const chevronSize = 6 / state.data.zoom;
+    const chevronGap = 6 / state.data.zoom;
 
     const textWidth = this.ctx.measureText(name).width;
     const bgWidth = textWidth + padding * 2 + chevronSize + chevronGap;
