@@ -171,18 +171,41 @@ export class FileSystemManager {
     }
   }
 
+  private _pendingSaveData: { 
+    index: number; 
+    annotations: BoundingBox[]; 
+    bitmap: ImageBitmap | null;
+    task: 'detection' | 'segmentation';
+  } | null = null;
+
   debouncedSave(): void {
     if (this._saveTimer) clearTimeout(this._saveTimer);
+    
+    // Capture the state at the exact moment the save was requested
+    this._pendingSaveData = {
+      index: state.data.currentImageIndex,
+      annotations: [...state.data.annotations],
+      bitmap: state.data.currentImageBitmap,
+      task: state.data.currentTask,
+    };
+    
     this._saveTimer = setTimeout(() => {
-      if (state.data.currentImageIndex !== -1) {
-        this.saveAnnotations(
-          state.data.currentImageIndex,
-          state.data.annotations,
-          state.data.currentImageBitmap,
-          true
-        );
-      }
+      this.flushPendingSave();
     }, 1000);
+  }
+
+  flushPendingSave(): void {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    if (this._pendingSaveData) {
+      const { index, annotations, bitmap, task } = this._pendingSaveData;
+      if (index !== -1) {
+        this.saveAnnotations(index, annotations, bitmap, true, task);
+      }
+      this._pendingSaveData = null;
+    }
   }
 
   clearPendingSaves(): void {
@@ -190,6 +213,7 @@ export class FileSystemManager {
       clearTimeout(this._saveTimer);
       this._saveTimer = null;
     }
+    this._pendingSaveData = null;
   }
 
   async waitForSaves(): Promise<void> {
@@ -200,7 +224,8 @@ export class FileSystemManager {
     index: number,
     annotations: BoundingBox[],
     bitmap: ImageBitmap | null = state.data.currentImageBitmap,
-    skipUI = false
+    skipUI = false,
+    task: 'detection' | 'segmentation' = state.data.currentTask
   ): Promise<void> {
     if (!state.data.folderHandle || !bitmap) return;
 
@@ -208,7 +233,7 @@ export class FileSystemManager {
       const imgInfo = state.data.images[index];
       if (!imgInfo) return;
       const txtName = imgInfo.name.replace(/\.[^/.]+$/, '') + '.txt';
-      const isSeg = state.data.currentTask === 'segmentation';
+      const isSeg = task === 'segmentation';
       const folder = isSeg ? state.data.labelSegFolderHandle : state.data.labelFolderHandle;
       if (!folder) return;
 

@@ -30,12 +30,19 @@ export class WorkspaceManager {
     // 1. Check Cache for Instant Render
     const cached = this.imageCache.get(index);
     if (cached) {
-      const taskAnnos = state.data.currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
+      let taskAnnos = state.data.currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
+      
+      // If the image was preloaded in a different task, we need to load the missing annotations from disk now.
+      if (taskAnnos === undefined) {
+        taskAnnos = await this.fileSystemManager.loadAnnotations(imageInfo.name, cached.bitmap);
+        if (state.data.currentTask === 'detection') cached.detAnnos = taskAnnos;
+        else cached.segAnnos = taskAnnos;
+      }
 
       state.set({
         currentImageIndex: index,
         currentImageBitmap: cached.bitmap,
-        annotations: taskAnnos || [],
+        annotations: taskAnnos,
         loading: false,
         activeMask: null,
         promptPoints: [],

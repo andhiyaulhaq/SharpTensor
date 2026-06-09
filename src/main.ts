@@ -220,6 +220,7 @@ class App {
         this.imageListManager.render(data.images);
 
         if (data.currentImageIndex !== oldData.currentImageIndex || datasetChanged) {
+          this.fileSystemManager.flushPendingSave();
           if (data.currentImageIndex !== -1) {
             this.workspaceManager.loadImage(data.currentImageIndex);
           } else {
@@ -229,6 +230,7 @@ class App {
       }
 
       if (data.currentTask !== oldData.currentTask) {
+        this.fileSystemManager.flushPendingSave();
         this.uiManager.updateTaskUI(data.currentTask);
         this.fileSystemManager.loadClasses();
         this.workspaceManager.syncTaskAnnotations();
