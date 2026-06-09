@@ -18,6 +18,8 @@ const initialState: AppStateData = {
   annotations: [],
   selectedBoxId: null,
   hoveredBoxId: null,
+  hoveredHandle: null,
+  activeHandle: null,
   classes: [],
   selectedClassId: null,
   zoom: 1.0,

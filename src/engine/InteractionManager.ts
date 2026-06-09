@@ -154,6 +154,8 @@ export class InteractionManager {
             startImgPos: imgPos,
             startPolygon: JSON.parse(JSON.stringify(targetBox.polygon)),
           };
+          useAppStore.getState().set({ activeHandle: hit.handle });
+          this.canvas.style.cursor = 'grabbing';
         } else {
           this.interaction = {
             type: 'resize',
@@ -240,7 +242,10 @@ export class InteractionManager {
       this.handleInteraction(imgPos);
     } else {
       const hit = this.hitTester.hitTest(imgPos.x, imgPos.y);
-      useAppStore.getState().set({ hoveredBoxId: hit ? hit.boxId : null });
+      useAppStore.getState().set({ 
+        hoveredBoxId: hit ? hit.boxId : null,
+        hoveredHandle: hit ? hit.handle : null
+      });
 
       if (useAppStore.getState().isPanning) {
         this.canvas.style.cursor = 'grab';
@@ -249,7 +254,7 @@ export class InteractionManager {
           this.canvas.style.cursor = 'pointer';
         } else if (hit.handle) {
           if (hit.handle.startsWith('vertex_')) {
-            this.canvas.style.cursor = 'move';
+            this.canvas.style.cursor = 'grab';
           } else {
             const cursorMap: Record<string, string> = {
               nw: 'nwse-resize', se: 'nwse-resize',
@@ -276,8 +281,8 @@ export class InteractionManager {
       const { x, y } = this.getMousePos(e);
       const imgPos = this.screenToImage(x, y);
 
-      if (this.interaction.type === 'move' || this.interaction.type === 'resize') {
-        
+      if (this.interaction.type === 'move' || this.interaction.type === 'resize' || this.interaction.type === 'move_vertex') {
+        useAppStore.getState().set({ activeHandle: null });
       }
 
       if (this.interaction.type === 'draw') {

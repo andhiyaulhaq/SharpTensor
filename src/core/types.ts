@@ -44,6 +44,8 @@ export interface AppStateData {
   annotations: BoundingBox[];
   selectedBoxId: number | null;
   hoveredBoxId: number | null;
+  hoveredHandle: string | null;
+  activeHandle: string | null;
   classes: AnnotationClass[];
   selectedClassId: number | null;
   zoom: number;

@@ -252,11 +252,37 @@ export class Renderer {
     this.ctx.lineWidth = 1 / useAppStore.getState().zoom;
 
     if (box.polygon) {
-      box.polygon.forEach((p) => {
+      const state = useAppStore.getState();
+      box.polygon.forEach((p, idx) => {
         const x = p[0];
         const y = p[1];
+        const handleId = `vertex_${idx}`;
+        const isHovered = state.hoveredBoxId === box.id && state.hoveredHandle === handleId;
+        const isDragging = state.activeHandle === handleId;
+
         this.ctx.beginPath();
-        this.ctx.arc(x, y, size / 1.5, 0, Math.PI * 2);
+        if (isDragging) {
+          this.ctx.arc(x, y, 14 / state.zoom, 0, Math.PI * 2);
+          this.ctx.fillStyle = `${color}40`;
+          this.ctx.fill();
+          
+          this.ctx.beginPath();
+          this.ctx.arc(x, y, 8 / state.zoom, 0, Math.PI * 2);
+          this.ctx.fillStyle = color;
+          this.ctx.lineWidth = 2 / state.zoom;
+          this.ctx.strokeStyle = '#ffffff';
+        } else if (isHovered) {
+          this.ctx.arc(x, y, 6 / state.zoom, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.lineWidth = 3 / state.zoom;
+          this.ctx.strokeStyle = color;
+        } else {
+          this.ctx.arc(x, y, 4 / state.zoom, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.lineWidth = 1.5 / state.zoom;
+          this.ctx.strokeStyle = color;
+        }
+
         this.ctx.fill();
         this.ctx.stroke();
       });
