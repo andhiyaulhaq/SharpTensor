@@ -45,13 +45,17 @@ export class KeyboardManager {
       }
 
       if (key === 'w') {
-        const isDet = useAppStore.getState().currentTask === 'detection';
-        useAppStore.getState().set({ mode: isDet ? 'draw' : 'magic' });
+        const state = useAppStore.getState();
+        const isDet = state.currentTask === 'detection';
+        if (!isDet && state.modelStatus !== 'ready') return;
+        state.set({ mode: isDet ? 'draw' : 'magic' });
       }
       if (key === 'v') useAppStore.getState().set({ mode: 'select' });
       if (key === 'm') {
-        const isDet = useAppStore.getState().currentTask === 'detection';
-        useAppStore.getState().set({ mode: isDet ? 'draw' : 'magic' });
+        const state = useAppStore.getState();
+        const isDet = state.currentTask === 'detection';
+        if (!isDet && state.modelStatus !== 'ready') return;
+        state.set({ mode: isDet ? 'draw' : 'magic' });
       }
       if (key === 'p') {
         const isSeg = useAppStore.getState().currentTask === 'segmentation';

@@ -279,8 +279,17 @@ class App {
       }
 
       const isFolderLoaded = !!data.folderHandle || data.images.length > 0;
+      
+      let btnDrawDisabled = !isFolderLoaded;
+      if (isFolderLoaded && data.currentTask === 'segmentation') {
+        btnDrawDisabled = data.modelStatus !== 'ready';
+        this.uiManager.dom.btnDraw.title = btnDrawDisabled ? 'Waiting for AI embedding...' : 'Magic Box (W)';
+      } else {
+        this.uiManager.dom.btnDraw.title = 'Draw Box (W)';
+      }
+      
       this.uiManager.dom.btnSelect.disabled = !isFolderLoaded;
-      this.uiManager.dom.btnDraw.disabled = !isFolderLoaded;
+      this.uiManager.dom.btnDraw.disabled = btnDrawDisabled;
       this.uiManager.dom.btnPolygon.disabled = !isFolderLoaded;
       this.uiManager.dom.btnPrev.disabled = !isFolderLoaded;
       this.uiManager.dom.btnNext.disabled = !isFolderLoaded;

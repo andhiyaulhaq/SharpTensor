@@ -26,6 +26,16 @@ export class ToolButton extends HTMLElement {
   connectedCallback(): void {
     if (this._initialized) return;
     this.renderInitial();
+    
+    // Intercept and block all clicks if the component is disabled
+    this.addEventListener('click', (e) => {
+      if (this.disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+
     this._initialized = true;
   }
 
