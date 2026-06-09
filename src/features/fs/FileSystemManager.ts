@@ -269,17 +269,19 @@ export class FileSystemManager {
   }
 
   async migrateDatasetOnDelete(deletedId: number): Promise<void> {
-    const { labelFolderHandle, images } = state.data;
-    if (!labelFolderHandle) return;
+    const { labelFolderHandle, labelSegFolderHandle, currentTask, images } = state.data;
+    const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
+    if (!targetFolder) return;
 
     for (const imgInfo of images) {
       const txtName = imgInfo.name.replace(/\.[^/.]+$/, '') + '.txt';
       try {
-        const fileHandle = await labelFolderHandle.getFileHandle(txtName);
+        const fileHandle = await targetFolder.getFileHandle(txtName);
         const file = await fileHandle.getFile();
         const content = await file.text();
         const newLines = content
           .split(/\r?\n|\r/)
+          .filter((line) => line.trim().length > 0)
           .map((line) => {
             const parts = line.split(' ');
             const classId = parseInt(parts[0] || '0');
@@ -288,9 +290,14 @@ export class FileSystemManager {
             return parts.join(' ');
           })
           .filter((l): l is string => l !== null);
-        const writable = await fileHandle.createWritable();
-        await writable.write(newLines.join('\n'));
-        await writable.close();
+          
+        if (newLines.length === 0) {
+          await targetFolder.removeEntry(txtName);
+        } else {
+          const writable = await fileHandle.createWritable();
+          await writable.write(newLines.join('\n'));
+          await writable.close();
+        }
       } catch (e) {}
     }
   }

@@ -861,11 +861,19 @@ class App {
   async performDeleteClassMigration(id: number, name: string): Promise<void> {
     state.set({ loading: true, statusMessage: '🔄 Migrating dataset...' });
     try {
-      const newAnnotations = state.data.annotations.filter((box) => box.classId !== id);
+      const newAnnotations = state.data.annotations
+        .filter((box) => box.classId !== id)
+        .map((box) => ({
+          ...box,
+          classId: box.classId > id ? box.classId - 1 : box.classId,
+        }));
       const newClasses = state.data.classes
         .filter((c) => c.id !== id)
         .map((c, idx) => ({ ...c, id: idx }));
       await this.fileSystemManager.migrateDatasetOnDelete(id);
+      await this.fileSystemManager.syncImageStatuses();
+      this.workspaceManager.clearCache();
+      
       state.set({
         classes: newClasses,
         annotations: newAnnotations,
