@@ -1,5 +1,5 @@
 import * as ort from 'onnxruntime-web';
-import { state } from './state';
+import { useAppStore } from './store';
 import { ResizeLongestSide, PromptEncoder } from './sam_utils';
 import { BoundingBox, EmbeddingCacheEntry, WorkerOutboundMessage } from './types';
 
@@ -64,7 +64,7 @@ export class AIEngine {
 
       // Update global state only if this is the ACTIVE image
       if (cacheKey === this.activeKey) {
-        state.set({ modelStatus: 'ready' });
+        useAppStore.getState().set({ modelStatus: 'ready' });
       }
 
       // Maintenance: keep cache at 15
@@ -88,7 +88,7 @@ export class AIEngine {
 
     if (msg.type === 'error') {
       this.log(`❌ Worker error: ${msg.payload}`, 'error');
-      state.set({ modelStatus: 'error' });
+      useAppStore.getState().set({ modelStatus: 'error' });
     }
   }
 
@@ -110,7 +110,7 @@ export class AIEngine {
 
   async loadModels(): Promise<void> {
     try {
-      state.set({ modelStatus: 'loading' });
+      useAppStore.getState().set({ modelStatus: 'loading' });
       // Root-absolute paths ensure compatibility between Main Thread and Worker
       const modelUrl = '/models/yolov8n_fp16.onnx';
       const modelType = 'yolov8';
@@ -141,14 +141,14 @@ export class AIEngine {
       this.promptEncoder = new PromptEncoder(weights);
 
       this.isLoaded = true;
-      state.set({
+      useAppStore.getState().set({
         modelStatus: 'ready',
         aiModel: { name: 'RT-DETR + MobileSAM (Worker Optimized)' },
       });
       this.log('✅ AI Engines Loaded (Hybrid Mode)');
     } catch (err: any) {
       this.log(`❌ Load error: ${err.message}`, 'error');
-      state.set({ modelStatus: 'error' });
+      useAppStore.getState().set({ modelStatus: 'error' });
       throw err;
     }
   }
@@ -187,7 +187,8 @@ export class AIEngine {
     if (!this.isLoaded || !cacheKey || !this.worker) return;
 
     // 1. If we are setting the ACTIVE image, update the key
-    const current = state.currentImage;
+    const storeState = useAppStore.getState();
+    const current = storeState.currentImageIndex !== -1 ? storeState.images[storeState.currentImageIndex] : null;
     const isActive = current && current.name === cacheKey;
     if (isActive) {
       this.activeKey = cacheKey;
@@ -197,7 +198,7 @@ export class AIEngine {
     const cacheEntry = this.embeddingCache.get(cacheKey);
     if (cacheEntry) {
       if (cacheEntry.embeddings && isActive) {
-        state.set({ modelStatus: 'ready' });
+        useAppStore.getState().set({ modelStatus: 'ready' });
       }
       return;
     }
@@ -221,7 +222,7 @@ export class AIEngine {
     this.log(`${isPreload ? '💤 Warmup' : '🍳 Active'} encoding: ${cacheKey}...`);
 
     if (isActive) {
-      state.set({ modelStatus: 'processing' });
+      useAppStore.getState().set({ modelStatus: 'processing' });
     }
 
     this.worker.postMessage(

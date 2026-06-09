@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { BoundingBox, AnnotationClass, ImageEntry, ImageCacheEntry } from '../../core/types';
 import { FileSystemManager } from './FileSystemManager';
 import {
@@ -24,14 +24,14 @@ export class ExportManager {
       const img = images[i];
       if (!img) continue;
 
-      let annotations: BoundingBox[] = [];
-      let width = 0;
-      let height = 0;
+      let annotations: BoundingBox[];
+      let width: number;
+      let height: number;
 
       const cached = imageCache.get(i);
       if (cached) {
         const taskAnnos =
-          state.data.currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
+          useAppStore.getState().currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
         annotations = taskAnnos || [];
         width = cached.bitmap.width;
         height = cached.bitmap.height;

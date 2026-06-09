@@ -1,4 +1,4 @@
-import { state } from '../core/state';
+import { useAppStore } from '../core/store';
 import { Point } from '../core/types';
 import { MathUtils } from '../utils/math';
 
@@ -6,7 +6,7 @@ export class HitTester {
   constructor(private ctx: CanvasRenderingContext2D) {}
 
   hitTest(x: number, y: number): { boxId: number; handle: string | null } | null {
-    const { annotations, classes, zoom, selectedBoxId } = state.data;
+    const { annotations, classes, zoom, selectedBoxId } = useAppStore.getState();
     const handleSize = 8 / zoom;
     const halfSize = handleSize / 2;
 

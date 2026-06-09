@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { ClassDefinition, BoundingBox } from '../../core/types';
 import { YoloHelper } from '../../utils/yolo';
 
@@ -57,10 +57,10 @@ export class ClassListManager {
       element.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.tagName !== 'INPUT' && !target.classList.contains('btn-delete-class')) {
-          if (state.data.selectedBoxId !== null) {
+          if (useAppStore.getState().selectedBoxId !== null) {
             this.reassignSelectedBox(id);
           } else {
-            state.set({ selectedClassId: id });
+            useAppStore.getState().set({ selectedClassId: id });
           }
         }
       });
@@ -80,10 +80,10 @@ export class ClassListManager {
 
         const finishRename = () => {
           const newName = input.value.trim() || nameSpan.textContent || '';
-          const newClasses = state.data.classes.map((c) =>
+          const newClasses = useAppStore.getState().classes.map((c) =>
             c.id === id ? { ...c, name: newName } : c
           );
-          state.set({ classes: newClasses });
+          useAppStore.getState().set({ classes: newClasses });
           this.config.onSaveClasses(newClasses);
         };
 
@@ -96,20 +96,20 @@ export class ClassListManager {
   }
 
   assignClassToSelected(classIndex: number): void {
-    const cls = state.data.classes[classIndex];
-    if (cls && state.data.selectedBoxId !== null) {
+    const cls = useAppStore.getState().classes[classIndex];
+    if (cls && useAppStore.getState().selectedBoxId !== null) {
       this.reassignSelectedBox(cls.id);
     } else if (cls) {
-      state.set({ selectedClassId: cls.id });
+      useAppStore.getState().set({ selectedClassId: cls.id });
     }
   }
 
   private reassignSelectedBox(newClassId: number): void {
-    const { selectedBoxId, annotations } = state.data;
+    const { selectedBoxId, annotations } = useAppStore.getState();
     const newAnnotations = annotations.map((box) =>
       box.id === selectedBoxId ? { ...box, classId: newClassId } : box
     );
-    state.set({ annotations: newAnnotations });
-    this.config.onSaveClasses(state.data.classes);
+    useAppStore.getState().set({ annotations: newAnnotations });
+    this.config.onSaveClasses(useAppStore.getState().classes);
   }
 }

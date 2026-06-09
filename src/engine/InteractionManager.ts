@@ -1,4 +1,4 @@
-import { state } from '../core/state';
+import { useAppStore } from '../core/store';
 import { ai } from '../core/ai';
 import { BoundingBox, CanvasInteraction, Point, ResizeHandle } from '../core/types';
 import { HitTester } from './HitTester';
@@ -42,7 +42,7 @@ export class InteractionManager {
 
     // Deselect on click outside
     this.container.addEventListener('click', (e: MouseEvent) => {
-      if (e.target === this.container) state.set({ selectedBoxId: null });
+      if (e.target === this.container) useAppStore.getState().set({ selectedBoxId: null });
     });
 
     // Spacebar Panning
@@ -55,8 +55,8 @@ export class InteractionManager {
           return;
         }
         e.preventDefault();
-        if (!state.data.isPanning) {
-          state.set({ isPanning: true });
+        if (!useAppStore.getState().isPanning) {
+          useAppStore.getState().set({ isPanning: true });
           this.canvas.style.cursor = 'grab';
           document.getElementById('crosshair-v')?.classList.add('hidden');
           document.getElementById('crosshair-h')?.classList.add('hidden');
@@ -66,15 +66,15 @@ export class InteractionManager {
 
     window.addEventListener('keyup', (e: KeyboardEvent) => {
       if (e.code === 'Space') {
-        state.set({ isPanning: false });
-        const isDrawOrMagic = state.data.mode === 'draw' || state.data.mode === 'magic';
+        useAppStore.getState().set({ isPanning: false });
+        const isDrawOrMagic = useAppStore.getState().mode === 'draw' || useAppStore.getState().mode === 'magic';
         this.canvas.style.cursor = isDrawOrMagic ? 'crosshair' : 'default';
       }
     });
 
     // Prevent Context Menu on Canvas (for right-click prompts)
     this.canvas.addEventListener('contextmenu', (e: MouseEvent) => {
-      if (state.data.mode === 'magic') e.preventDefault();
+      if (useAppStore.getState().mode === 'magic') e.preventDefault();
     });
   }
 
@@ -85,7 +85,7 @@ export class InteractionManager {
     console.log(`🎨 Canvas Click at Image Coords: [${Math.round(imgPos.x)}, ${Math.round(imgPos.y)}]`);
 
     // 1. Panning
-    if (e.button === 1 || (e.button === 0 && (e.altKey || state.data.isPanning))) {
+    if (e.button === 1 || (e.button === 0 && (e.altKey || useAppStore.getState().isPanning))) {
       this.interaction = { type: 'pan' };
       this.lastMousePos = { x: e.clientX, y: e.clientY };
       this.canvas.style.cursor = 'grabbing';
@@ -93,18 +93,18 @@ export class InteractionManager {
     }
 
     // 2. Magic / Draw Interaction for Segmentation
-    const isSegTask = state.data.currentTask === 'segmentation';
-    const isMagicOrSegDraw = state.data.mode === 'magic' || (state.data.mode === 'draw' && isSegTask);
+    const isSegTask = useAppStore.getState().currentTask === 'segmentation';
+    const isMagicOrSegDraw = useAppStore.getState().mode === 'magic' || (useAppStore.getState().mode === 'draw' && isSegTask);
 
-    if (state.data.mode === 'polygon' && isSegTask) {
+    if (useAppStore.getState().mode === 'polygon' && isSegTask) {
       if (e.button !== 0) return;
-      const activePoly = state.data.activePolygon || [];
+      const activePoly = useAppStore.getState().activePolygon || [];
       
       if (activePoly.length > 0) {
         const startPt = activePoly[0];
         if (startPt) {
           const dist = Math.sqrt(Math.pow(imgPos.x - startPt[0], 2) + Math.pow(imgPos.y - startPt[1], 2));
-          const pxDist = dist * state.data.zoom;
+          const pxDist = dist * useAppStore.getState().zoom;
           if (pxDist < 10) {
             const event = new KeyboardEvent('keydown', { key: 'Enter' });
             window.dispatchEvent(event);
@@ -113,11 +113,11 @@ export class InteractionManager {
         }
       }
       
-      state.set({ activePolygon: [...activePoly, [imgPos.x, imgPos.y]] });
+      useAppStore.getState().set({ activePolygon: [...activePoly, [imgPos.x, imgPos.y]] });
       return;
     }
 
-    if (isMagicOrSegDraw && state.data.currentImageBitmap) {
+    if (isMagicOrSegDraw && useAppStore.getState().currentImageBitmap) {
       this.interaction = {
         type: 'magic',
         startImgPos: imgPos,
@@ -139,9 +139,9 @@ export class InteractionManager {
         return;
       }
 
-      state.set({ selectedBoxId: hit.boxId });
+      useAppStore.getState().set({ selectedBoxId: hit.boxId });
 
-      const targetBox = state.data.annotations.find((b) => b.id === hit.boxId);
+      const targetBox = useAppStore.getState().annotations.find((b) => b.id === hit.boxId);
       if (!targetBox) return;
 
       if (hit.handle) {
@@ -175,9 +175,10 @@ export class InteractionManager {
     }
 
     // Draw mode - Create new box
-    if (state.data.mode === 'draw' && !state.data.isPanning && state.data.currentImageBitmap) {
-      const imgWidth = state.data.currentImageBitmap.width;
-      const imgHeight = state.data.currentImageBitmap.height;
+    const state = useAppStore.getState();
+    if (state.mode === 'draw' && !state.isPanning && state.currentImageBitmap) {
+      const imgWidth = state.currentImageBitmap.width;
+      const imgHeight = state.currentImageBitmap.height;
 
       const startX = Math.max(0, Math.min(imgPos.x, imgWidth));
       const startY = Math.max(0, Math.min(imgPos.y, imgHeight));
@@ -189,12 +190,12 @@ export class InteractionManager {
         y: startY,
         width: 0,
         height: 0,
-        classId: state.data.selectedClassId !== null ? state.data.selectedClassId : -1,
+        classId: state.selectedClassId ?? -1,
       };
 
-      state.saveHistory();
-      state.set({
-        annotations: [...state.data.annotations, newBox],
+      
+      useAppStore.getState().set({
+        annotations: [...useAppStore.getState().annotations, newBox],
         selectedBoxId: newId,
       });
 
@@ -204,7 +205,7 @@ export class InteractionManager {
         startImgPos: { x: startX, y: startY },
       };
     } else {
-      state.set({ selectedBoxId: null });
+      useAppStore.getState().set({ selectedBoxId: null });
     }
   }
 
@@ -212,7 +213,7 @@ export class InteractionManager {
     const { x, y } = this.getMousePos(e);
     const imgPos = this.screenToImage(x, y);
 
-    if (state.data.mode === 'polygon') {
+    if (useAppStore.getState().mode === 'polygon') {
       this.polygonCursorImgPos = imgPos;
     } else {
       this.polygonCursorImgPos = null;
@@ -222,7 +223,7 @@ export class InteractionManager {
       if (this.interaction.type === 'pan') {
         const dx = e.clientX - this.lastMousePos.x;
         const dy = e.clientY - this.lastMousePos.y;
-        state.set({ pan: { x: state.data.pan.x + dx, y: state.data.pan.y + dy } });
+        useAppStore.getState().set({ pan: { x: useAppStore.getState().pan.x + dx, y: useAppStore.getState().pan.y + dy } });
         this.lastMousePos = { x: e.clientX, y: e.clientY };
         return;
       }
@@ -239,9 +240,9 @@ export class InteractionManager {
       this.handleInteraction(imgPos);
     } else {
       const hit = this.hitTester.hitTest(imgPos.x, imgPos.y);
-      state.set({ hoveredBoxId: hit ? hit.boxId : null });
+      useAppStore.getState().set({ hoveredBoxId: hit ? hit.boxId : null });
 
-      if (state.data.isPanning) {
+      if (useAppStore.getState().isPanning) {
         this.canvas.style.cursor = 'grab';
       } else if (hit) {
         if (hit.handle === 'label') {
@@ -262,7 +263,7 @@ export class InteractionManager {
           this.canvas.style.cursor = 'move';
         }
       } else {
-        const isDrawOrMagic = state.data.mode === 'draw' || state.data.mode === 'magic';
+        const isDrawOrMagic = useAppStore.getState().mode === 'draw' || useAppStore.getState().mode === 'magic';
         this.canvas.style.cursor = isDrawOrMagic ? 'crosshair' : 'default';
       }
     }
@@ -276,21 +277,21 @@ export class InteractionManager {
       const imgPos = this.screenToImage(x, y);
 
       if (this.interaction.type === 'move' || this.interaction.type === 'resize') {
-        state.saveHistory();
+        
       }
 
       if (this.interaction.type === 'draw') {
         const { boxId } = this.interaction;
-        const box = state.data.annotations.find((b) => b.id === boxId);
+        const box = useAppStore.getState().annotations.find((b) => b.id === boxId);
 
         if (box) {
           if (box.width < 5 && box.height < 5) {
-            state.set({
-              annotations: state.data.annotations.filter((b) => b.id !== boxId),
+            useAppStore.getState().set({
+              annotations: useAppStore.getState().annotations.filter((b) => b.id !== boxId),
               selectedBoxId: null,
             });
           } else {
-            if (state.data.classes.length > 0) {
+            if (useAppStore.getState().classes.length > 0) {
               this.renderer.showClassDropdown(boxId, e.clientX, e.clientY);
             } else {
               window.dispatchEvent(
@@ -321,21 +322,22 @@ export class InteractionManager {
     }
 
     this.interaction = null;
-    this.canvas.style.cursor = state.data.isPanning ? 'grab' : 'default';
+    this.canvas.style.cursor = useAppStore.getState().isPanning ? 'grab' : 'default';
   }
 
   private handleInteraction(imgPos: Point): void {
-    if (!state.data.currentImageBitmap || !this.interaction) return;
+    const state = useAppStore.getState();
+    if (!state.currentImageBitmap || !this.interaction) return;
     if (this.interaction.type === 'pan' || this.interaction.type === 'magic') return;
 
     const { type, boxId, startImgPos } = this.interaction;
-    const imgWidth = state.data.currentImageBitmap.width;
-    const imgHeight = state.data.currentImageBitmap.height;
+    const imgWidth = state.currentImageBitmap.width;
+    const imgHeight = state.currentImageBitmap.height;
 
     const dx = imgPos.x - startImgPos.x;
     const dy = imgPos.y - startImgPos.y;
 
-    const annotations = state.data.annotations.map((box) => {
+    const annotations = useAppStore.getState().annotations.map((box) => {
       if (box.id !== boxId) return box;
 
       if (type === 'draw') {
@@ -425,7 +427,7 @@ export class InteractionManager {
       return box;
     });
 
-    state.set({ annotations });
+    useAppStore.getState().set({ annotations });
   }
 
   private getMousePos(e: MouseEvent): Point {
@@ -436,19 +438,19 @@ export class InteractionManager {
   private handleZoom(e: WheelEvent): void {
     const delta = -e.deltaY;
     const factor = Math.pow(1.1, delta / 100);
-    const newZoom = Math.min(Math.max(state.data.zoom * factor, 0.1), 20);
+    const newZoom = Math.min(Math.max(useAppStore.getState().zoom * factor, 0.1), 20);
 
     const rect = this.canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const worldX = (mouseX - state.data.pan.x) / state.data.zoom;
-    const worldY = (mouseY - state.data.pan.y) / state.data.zoom;
+    const worldX = (mouseX - useAppStore.getState().pan.x) / useAppStore.getState().zoom;
+    const worldY = (mouseY - useAppStore.getState().pan.y) / useAppStore.getState().zoom;
 
     const newPanX = mouseX - worldX * newZoom;
     const newPanY = mouseY - worldY * newZoom;
 
-    state.set({ zoom: newZoom, pan: { x: newPanX, y: newPanY } });
+    useAppStore.getState().set({ zoom: newZoom, pan: { x: newPanX, y: newPanY } });
   }
 
   private updateCrosshair(e: MouseEvent): void {
@@ -459,7 +461,7 @@ export class InteractionManager {
     const vLine = document.getElementById('crosshair-v');
     const hLine = document.getElementById('crosshair-h');
 
-    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height && !state.data.isPanning) {
+    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height && !useAppStore.getState().isPanning) {
       if (vLine) {
         vLine.classList.remove('hidden');
         vLine.style.left = `${x}px`;
@@ -482,34 +484,35 @@ export class InteractionManager {
 
   private screenToImage(screenX: number, screenY: number): Point {
     return {
-      x: (screenX - state.data.pan.x) / state.data.zoom,
-      y: (screenY - state.data.pan.y) / state.data.zoom,
+      x: (screenX - useAppStore.getState().pan.x) / useAppStore.getState().zoom,
+      y: (screenY - useAppStore.getState().pan.y) / useAppStore.getState().zoom,
     };
   }
 
   async handleMagicClick(x: number, y: number, label: 0 | 1): Promise<void> {
-    const newPoints = [...state.data.promptPoints, { x, y, label }];
-    state.set({ promptPoints: newPoints });
+    const newPoints = [...useAppStore.getState().promptPoints, { x, y, label }];
+    useAppStore.getState().set({ promptPoints: newPoints });
 
+    const activePromptBox = useAppStore.getState().activePromptBox;
     const mask = await ai.predictSAMMask(
       { coords: newPoints.map((p) => [p.x, p.y]), labels: newPoints.map((p) => p.label) },
-      state.data.activePromptBox ? [state.data.activePromptBox] : null
+      activePromptBox ? [activePromptBox] : null
     );
 
-    state.set({ activeMask: mask });
+    useAppStore.getState().set({ activeMask: mask });
   }
 
   async handleMagicBox(x1: number, y1: number, x2: number, y2: number): Promise<void> {
     const box: [number, number, number, number] = [x1, y1, x2, y2];
-    state.set({ activePromptBox: box });
+    useAppStore.getState().set({ activePromptBox: box });
 
     const mask = await ai.predictSAMMask(
-      state.data.promptPoints.length > 0
-        ? { coords: state.data.promptPoints.map((p) => [p.x, p.y]), labels: state.data.promptPoints.map((p) => p.label) }
+      useAppStore.getState().promptPoints.length > 0
+        ? { coords: useAppStore.getState().promptPoints.map((p) => [p.x, p.y]), labels: useAppStore.getState().promptPoints.map((p) => p.label) }
         : null,
       [box]
     );
 
-    state.set({ activeMask: mask });
+    useAppStore.getState().set({ activeMask: mask });
   }
 }

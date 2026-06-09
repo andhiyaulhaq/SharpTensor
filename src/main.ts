@@ -1,4 +1,4 @@
-import { state } from './core/state';
+import { useAppStore } from './core/store';
 import { CanvasEngine } from './engine/canvas';
 import { YoloHelper } from './utils/yolo';
 import { ai } from './core/ai';
@@ -96,7 +96,7 @@ class App {
 
     this.classListManager = new ClassListManager({
       container: this.uiManager.dom.classList,
-      onSaveClasses: (c) => state.set({ classes: c }),
+      onSaveClasses: (c) => useAppStore.getState().set({ classes: c }),
       onDeleteClass: (id) => this.handleDeleteClass(id),
     });
 
@@ -119,11 +119,11 @@ class App {
       onRenderImageList: (images) => this.imageListManager.render(images),
       onLoadImage: (idx) => this.workspaceManager.loadImage(idx),
       onUpdateCache: (idx, annos) =>
-        this.workspaceManager.updateCacheForIndex(idx, annos, state.data.currentTask),
+        this.workspaceManager.updateCacheForIndex(idx, annos, useAppStore.getState().currentTask),
     });
 
     this.initStateListeners();
-    this.uiManager.updateTaskUI(state.data.currentTask);
+    this.uiManager.updateTaskUI(useAppStore.getState().currentTask);
 
     ai.loadModels();
 
@@ -162,8 +162,8 @@ class App {
           element: target.tagName,
           id: target.id || 'no-id',
           classes: Array.from(target.classList).join(' '),
-          mode: state.data.mode,
-          currentImage: state.data.images[state.data.currentImageIndex]?.name || 'none',
+          mode: useAppStore.getState().mode,
+          currentImage: useAppStore.getState().images[useAppStore.getState().currentImageIndex]?.name || 'none',
         };
         console.log('🖱️ Click Log:', logEntry);
       },
@@ -172,24 +172,24 @@ class App {
   }
 
   deleteSelectedBox(): void {
-    const { selectedBoxId, annotations } = state.data;
+    const { selectedBoxId, annotations } = useAppStore.getState();
     if (selectedBoxId === null) return;
-    state.saveHistory();
-    state.set({
+    
+    useAppStore.getState().set({
       annotations: annotations.filter((b) => b.id !== selectedBoxId),
       selectedBoxId: null,
     });
   }
 
   initStateListeners(): void {
-    state.subscribe((data, oldData) => {
+    useAppStore.subscribe((data, oldData) => {
       if (data.mode !== oldData.mode) {
         if (data.tourStep === 'step2-interact') {
           this.tourManager.advanceTour('complete');
         }
 
         if (oldData.mode === 'polygon' && data.mode !== 'polygon') {
-          state.set({ activePolygon: null });
+          useAppStore.getState().set({ activePolygon: null });
         }
 
         this.uiManager.dom.workspace.className =
@@ -224,7 +224,7 @@ class App {
           if (data.currentImageIndex !== -1) {
             this.workspaceManager.loadImage(data.currentImageIndex);
           } else {
-            state.set({ annotations: [], currentImageBitmap: null });
+            useAppStore.getState().set({ annotations: [], currentImageBitmap: null });
           }
         }
       }
@@ -251,13 +251,14 @@ class App {
       }
 
       if (data.annotations !== oldData.annotations && !data.isAutoLabeling) {
-        const newImages = [...data.images];
-        const currentImg = newImages[data.currentImageIndex];
+        const currentImg = data.images[data.currentImageIndex];
         if (currentImg) {
           const hasAnnos = data.annotations.length > 0;
-          if (currentImg.status !== (hasAnnos ? 'labeled' : 'pending')) {
-            currentImg.status = hasAnnos ? 'labeled' : 'pending';
-            state.set({ images: newImages });
+          const targetStatus = hasAnnos ? 'labeled' : 'pending';
+          if (currentImg.status !== targetStatus) {
+            const newImages = [...data.images];
+            newImages[data.currentImageIndex] = { ...currentImg, status: targetStatus };
+            useAppStore.getState().set({ images: newImages });
             this.imageListManager.render(newImages);
           }
         }
@@ -337,7 +338,7 @@ class App {
       this.initLogListener();
     });
 
-    const initialMode = state.data.mode;
+    const initialMode = useAppStore.getState().mode;
     const isDrawOrMagic = initialMode === 'draw' || initialMode === 'magic';
     this.uiManager.dom.btnDraw.classList.toggle('active', isDrawOrMagic);
     this.uiManager.dom.btnPolygon.classList.toggle('active', initialMode === 'polygon');
@@ -401,7 +402,7 @@ class App {
         },
       ];
 
-      state.set({
+      useAppStore.getState().set({
         folderHandle: null,
         labelFolderHandle: null,
         labelSegFolderHandle: null,
@@ -427,7 +428,7 @@ class App {
       this.tourManager.startTour();
     } catch (err) {
       console.error(err);
-      state.set({ loading: false });
+      useAppStore.getState().set({ loading: false });
       this.uiManager.updateStatus('❌ Demo failed to load', true);
     }
   }
@@ -443,37 +444,37 @@ class App {
         const name = val.trim();
         if (!name) {
           if (boxId !== undefined) {
-            state.set({ annotations: state.data.annotations.filter((b) => b.id !== boxId) });
+            useAppStore.getState().set({ annotations: useAppStore.getState().annotations.filter((b) => b.id !== boxId) });
           }
           return;
         }
-        const { classes } = state.data;
+        const { classes } = useAppStore.getState();
         const exists = classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
         if (exists) {
           this.uiManager.updateStatus('❌ Class already exists', true);
           if (boxId !== undefined) {
-            state.set({ annotations: state.data.annotations.filter((b) => b.id !== boxId) });
+            useAppStore.getState().set({ annotations: useAppStore.getState().annotations.filter((b) => b.id !== boxId) });
           }
           return;
         }
         const newId = classes.length > 0 ? Math.max(...classes.map((c) => c.id)) + 1 : 0;
         const newClass: ClassDefinition = { id: newId, name, color: YoloHelper.generateColor(newId) };
         const newClasses = [...classes, newClass];
-        state.set({ classes: newClasses, selectedClassId: newId });
+        useAppStore.getState().set({ classes: newClasses, selectedClassId: newId });
         this.fileSystemManager.saveClasses(newClasses);
         this.uiManager.updateStatus('✅ Class added successfully');
         
         if (boxId !== undefined) {
-          const newAnnos = state.data.annotations.map((b) =>
+          const newAnnos = useAppStore.getState().annotations.map((b) =>
             b.id === boxId ? { ...b, classId: newId } : b
           );
-          state.set({ annotations: newAnnos });
+          useAppStore.getState().set({ annotations: newAnnos });
           this.fileSystemManager.debouncedSave();
         }
       },
       onCancel: () => {
         if (boxId !== undefined) {
-          state.set({ annotations: state.data.annotations.filter((b) => b.id !== boxId) });
+          useAppStore.getState().set({ annotations: useAppStore.getState().annotations.filter((b) => b.id !== boxId) });
         }
       }
     });
@@ -489,9 +490,9 @@ class App {
       checkboxLabel: 'Also reset class definitions (classes.txt)',
       onConfirm: async (val, clearClasses) => {
         try {
-          state.saveHistory();
-          state.set({ loading: true, statusMessage: '🧹 Purging data...' });
-          const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = state.data;
+          
+          useAppStore.getState().set({ loading: true, statusMessage: '🧹 Purging data...' });
+          const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = useAppStore.getState();
 
           const targetFolder =
             currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
@@ -533,14 +534,14 @@ class App {
             resetState.selectedClassId = null;
           }
 
-          state.set(resetState);
+          useAppStore.getState().set(resetState);
 
           this.imageListManager.render(images);
           if (this.canvasEngine) this.canvasEngine.draw();
           this.uiManager.updateStatus('✅ All annotations cleared');
         } catch (err) {
           console.error('Failed to clear annotations:', err);
-          state.set({ loading: false });
+          useAppStore.getState().set({ loading: false });
           this.uiManager.updateStatus('❌ Error clearing annotations', true);
         }
       },
@@ -555,7 +556,7 @@ class App {
   }
 
   async handleExport(format: ExportFormat): Promise<void> {
-    const { folderHandle, images, classes, currentTask } = state.data;
+    const { folderHandle, images, classes, currentTask } = useAppStore.getState();
     if (images.length === 0) return;
 
     if (!folderHandle) {
@@ -580,7 +581,7 @@ class App {
         }
 
         this.uiManager.updateStatus(`Exporting to ${format.toUpperCase()}...`);
-        state.set({ loading: true });
+        useAppStore.getState().set({ loading: true });
 
         try {
           const result = await this.exportManager.exportAll(
@@ -597,14 +598,14 @@ class App {
           console.error('Export failed:', err);
           this.uiManager.updateStatus('Export failed', true);
         } finally {
-          state.set({ loading: false });
+          useAppStore.getState().set({ loading: false });
         }
       },
     });
   }
 
   private async handleDownloadExport(format: ExportFormat): Promise<void> {
-    const { images, classes } = state.data;
+    const { images, classes } = useAppStore.getState();
 
     const formatNames: Record<ExportFormat, string> = {
       yolo: 'YOLO .txt',
@@ -619,7 +620,7 @@ class App {
       confirmText: 'Download',
       cancelText: 'Cancel',
       onConfirm: async () => {
-        state.set({ loading: true });
+        useAppStore.getState().set({ loading: true });
         try {
           const payloads = await this.exportManager.collectPayloads(
             images,
@@ -637,7 +638,7 @@ class App {
           console.error('Download failed:', err);
           this.uiManager.updateStatus('Download failed', true);
         } finally {
-          state.set({ loading: false });
+          useAppStore.getState().set({ loading: false });
         }
       },
     });
@@ -712,12 +713,12 @@ class App {
   }
 
   resetMagicInteraction(): void {
-    state.set({ promptPoints: [], activeMask: null, activePromptBox: null });
+    useAppStore.getState().set({ promptPoints: [], activeMask: null, activePromptBox: null });
     this.canvasEngine.draw();
   }
 
   confirmPolygon(): void {
-    const { activePolygon, selectedClassId } = state.data;
+    const { activePolygon, selectedClassId } = useAppStore.getState();
     if (!activePolygon || activePolygon.length < 3) return;
 
     const xs = activePolygon.map((p) => p[0]);
@@ -738,30 +739,30 @@ class App {
       score: 1.0,
     };
 
-    state.saveHistory();
-    const newAnnos = [...state.data.annotations, newAnnotation];
-    state.set({
+    
+    const newAnnos = [...useAppStore.getState().annotations, newAnnotation];
+    useAppStore.getState().set({
       annotations: newAnnos,
       activePolygon: null,
     });
 
     this.uiManager.updateStatus('✅ Polygon confirmed');
 
-    if (state.data.classes.length === 0) {
+    if (useAppStore.getState().classes.length === 0) {
       window.dispatchEvent(
         new CustomEvent('st:request-add-class', { detail: { boxId: newAnnotation.id } })
       );
     } else {
       const canvas = document.querySelector('canvas');
       const rect = canvas?.getBoundingClientRect();
-      const cx = rect ? rect.left + (x1 + width / 2) * state.data.zoom + state.data.pan.x : window.innerWidth / 2;
-      const cy = rect ? rect.top + (y1 + height / 2) * state.data.zoom + state.data.pan.y : window.innerHeight / 2;
+      const cx = rect ? rect.left + (x1 + width / 2) * useAppStore.getState().zoom + useAppStore.getState().pan.x : window.innerWidth / 2;
+      const cy = rect ? rect.top + (y1 + height / 2) * useAppStore.getState().zoom + useAppStore.getState().pan.y : window.innerHeight / 2;
       this.canvasEngine.showClassDropdown(newAnnotation.id, cx, cy);
     }
   }
 
   async confirmMagicMask(): Promise<void> {
-    const { activeMask, selectedClassId, currentTask, currentImageBitmap } = state.data;
+    const { activeMask, selectedClassId, currentTask, currentImageBitmap } = useAppStore.getState();
     if (!activeMask || !currentImageBitmap) return;
 
     const isSegTask = currentTask === 'segmentation';
@@ -801,9 +802,9 @@ class App {
       score: 1.0,
     };
 
-    state.saveHistory();
-    const newAnnos = [...state.data.annotations, newAnnotation];
-    state.set({
+    
+    const newAnnos = [...useAppStore.getState().annotations, newAnnotation];
+    useAppStore.getState().set({
       annotations: newAnnos,
       activeMask: null,
       promptPoints: [],
@@ -812,15 +813,15 @@ class App {
 
     this.uiManager.updateStatus(`✅ ${isSegTask ? 'Polygon' : 'Box'} confirmed`);
 
-    if (state.data.classes.length === 0) {
+    if (useAppStore.getState().classes.length === 0) {
       window.dispatchEvent(
         new CustomEvent('st:request-add-class', { detail: { boxId: newAnnotation.id } })
       );
     } else {
       const canvas = document.querySelector('canvas');
       const rect = canvas?.getBoundingClientRect();
-      const cx = rect ? rect.left + (x1 + width / 2) * state.data.zoom + state.data.pan.x : window.innerWidth / 2;
-      const cy = rect ? rect.top + (y1 + height / 2) * state.data.zoom + state.data.pan.y : window.innerHeight / 2;
+      const cx = rect ? rect.left + (x1 + width / 2) * useAppStore.getState().zoom + useAppStore.getState().pan.x : window.innerWidth / 2;
+      const cy = rect ? rect.top + (y1 + height / 2) * useAppStore.getState().zoom + useAppStore.getState().pan.y : window.innerHeight / 2;
       this.canvasEngine.showClassDropdown(newAnnotation.id, cx, cy);
     }
   }
@@ -849,7 +850,7 @@ class App {
   }
 
   async handleDeleteClass(id: number): Promise<void> {
-    const cls = state.data.classes.find((c) => c.id === id);
+    const cls = useAppStore.getState().classes.find((c) => c.id === id);
     if (!cls) return;
     this.uiManager.showModal({
       title: 'Delete Class Definition',
@@ -861,22 +862,22 @@ class App {
   }
 
   async performDeleteClassMigration(id: number, name: string): Promise<void> {
-    state.set({ loading: true, statusMessage: '🔄 Migrating dataset...' });
+    useAppStore.getState().set({ loading: true, statusMessage: '🔄 Migrating dataset...' });
     try {
-      const newAnnotations = state.data.annotations
+      const newAnnotations = useAppStore.getState().annotations
         .filter((box) => box.classId !== id)
         .map((box) => ({
           ...box,
           classId: box.classId > id ? box.classId - 1 : box.classId,
         }));
-      const newClasses = state.data.classes
+      const newClasses = useAppStore.getState().classes
         .filter((c) => c.id !== id)
         .map((c, idx) => ({ ...c, id: idx }));
       await this.fileSystemManager.migrateDatasetOnDelete(id);
       await this.fileSystemManager.syncImageStatuses();
       this.workspaceManager.clearCache();
       
-      state.set({
+      useAppStore.getState().set({
         classes: newClasses,
         annotations: newAnnotations,
         selectedClassId: newClasses[0]?.id || null,
@@ -886,13 +887,13 @@ class App {
       this.uiManager.updateStatus(`✅ Removed class: ${name}`);
     } catch (err) {
       console.error('Migration failed:', err);
-      state.set({ loading: false });
+      useAppStore.getState().set({ loading: false });
     }
   }
 }
 
 if (import.meta.env.DEV) {
-  (window as any).__state = state;
+  (window as any).__state = useAppStore.getState();
   (window as any).__ai = ai;
 }
 

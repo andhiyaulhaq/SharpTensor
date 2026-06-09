@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { ai } from '../../core/ai';
 import { BoundingBox, ClassDefinition, ImageEntry } from '../../core/types';
 import { FileSystemManager } from '../fs/FileSystemManager';
@@ -24,11 +24,11 @@ export class AIOrchestrator {
 
   async handleAutoLabelDataset(): Promise<void> {
     // If we have no folder handle but we have an image, we are in the mock demo workspace.
-    const isDemoWorkspace = !state.data.folderHandle && state.data.images.length > 0;
+    const isDemoWorkspace = !useAppStore.getState().folderHandle && useAppStore.getState().images.length > 0;
 
-    if (state.data.tourActive || isDemoWorkspace) {
+    if (useAppStore.getState().tourActive || isDemoWorkspace) {
       this.config.onUpdateStatus('🎯 AI Analyzing demo scene...');
-      const image = state.data.images[0];
+      const image = useAppStore.getState().images[0];
       if (!image) return;
       const file = await (image.handle as any).getFile();
       const bitmap = await createImageBitmap(file);
@@ -36,22 +36,22 @@ export class AIOrchestrator {
 
       const { mapped, classesChanged, updatedClasses } = this.mapPredictionsToClasses(
         predictions,
-        state.data.classes
+        useAppStore.getState().classes
       );
 
       if (classesChanged) {
-        state.set({ classes: updatedClasses });
+        useAppStore.getState().set({ classes: updatedClasses });
       }
 
-      state.saveHistory();
-      state.set({ annotations: mapped });
+      
+      useAppStore.getState().set({ annotations: mapped });
       this.config.onDrawCanvas();
       this.config.onUpdateStatus(`✅ Demo Ready: Found ${mapped.length} objects`);
       this.config.onAdvanceTour('step2-interact');
       return;
     }
 
-    if (!state.data.folderHandle) {
+    if (!useAppStore.getState().folderHandle) {
       this.config.onUpdateStatus('❌ Open a folder first', true);
       return;
     }
@@ -89,8 +89,8 @@ export class AIOrchestrator {
       modal.classList.add('hidden');
     };
 
-    const images = state.data.images;
-    state.set({ isAutoLabeling: true });
+    const images = useAppStore.getState().images;
+    useAppStore.getState().set({ isAutoLabeling: true });
 
     let completedCount = 0;
     const totalImages = images.length;
@@ -100,7 +100,7 @@ export class AIOrchestrator {
       fill.style.width = `0%`;
     });
 
-    let batchClasses = [...state.data.classes];
+    let batchClasses = [...useAppStore.getState().classes];
 
     const updateUI = (imgName: string) => {
       requestAnimationFrame(() => {
@@ -133,7 +133,7 @@ export class AIOrchestrator {
               batchClasses = updatedClasses;
 
               if (classesChanged) {
-                state.set({ classes: [...batchClasses] });
+                useAppStore.getState().set({ classes: [...batchClasses] });
                 await this.config.fileSystemManager.saveClasses(batchClasses);
               }
 
@@ -142,11 +142,13 @@ export class AIOrchestrator {
 
               this.config.onUpdateCache(idx, merged);
 
-              if (idx === state.data.currentImageIndex) {
-                state.set({ annotations: merged });
+              if (idx === useAppStore.getState().currentImageIndex) {
+                useAppStore.getState().set({ annotations: merged });
                 this.config.onDrawCanvas();
               }
-              img.status = 'labeled';
+              useAppStore.getState().set({
+                images: useAppStore.getState().images.map((im, i) => i === idx ? { ...im, status: 'labeled' } : im)
+              });
             }
           } catch (err) {
             console.error(`Failed to auto-label ${img.name}:`, err);
@@ -161,11 +163,11 @@ export class AIOrchestrator {
     modal.classList.add('hidden');
     confirmBtn.disabled = false;
     confirmBtn.classList.remove('opacity-50');
-    state.set({ isAutoLabeling: false });
+    useAppStore.getState().set({ isAutoLabeling: false });
 
-    this.config.onRenderImageList(state.data.images);
-    if (state.data.currentImageIndex !== -1) {
-      await this.config.onLoadImage(state.data.currentImageIndex);
+    this.config.onRenderImageList(useAppStore.getState().images);
+    if (useAppStore.getState().currentImageIndex !== -1) {
+      await this.config.onLoadImage(useAppStore.getState().currentImageIndex);
     }
     this.config.onUpdateStatus(cancelled ? '⚠️ AI Batch Cancelled' : '✅ AI Batch Complete');
   }

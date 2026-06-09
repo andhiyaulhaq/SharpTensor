@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { YoloHelper } from '../../utils/yolo';
 import { BoundingBox, ClassDefinition, ImageEntry } from '../../core/types';
 
@@ -22,7 +22,7 @@ export class FileSystemManager {
       const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
       console.log('[FS] Directory picker succeeded. Handle:', handle.name);
 
-      state.set({ loading: true, statusMessage: 'Reading folder...' });
+      useAppStore.getState().set({ loading: true, statusMessage: 'Reading folder...' });
 
       console.log('[FS] Attempting to get/create "label" directory...');
       const labelDir = await handle.getDirectoryHandle('label', { create: true });
@@ -34,7 +34,7 @@ export class FileSystemManager {
       const labelSegHandle = await labelSegDir.getDirectoryHandle('yolo', { create: true });
       console.log('[FS] "label-seg/yolo" directory ready');
 
-      state.set({
+      useAppStore.getState().set({
         folderHandle: handle,
         labelFolderHandle: labelHandle,
         labelSegFolderHandle: labelSegHandle,
@@ -54,7 +54,7 @@ export class FileSystemManager {
 
       images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-      state.set({
+      useAppStore.getState().set({
         images,
         currentImageIndex: images.length > 0 ? 0 : -1,
         loading: false,
@@ -73,11 +73,11 @@ export class FileSystemManager {
   }
 
   async syncImageStatuses(): Promise<void> {
-    const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = state.data;
+    const { labelFolderHandle, labelSegFolderHandle, images, currentTask } = useAppStore.getState();
     const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
     if (!targetFolder || images.length === 0) return;
 
-    const newImages = [...images];
+    const newImages = images.map(img => ({ ...img }));
     let changed = false;
 
     console.log(
@@ -114,12 +114,12 @@ export class FileSystemManager {
     console.log(`[FS] syncImageStatuses complete. Changed state? ${changed}`);
 
     if (changed) {
-      state.set({ images: newImages });
+      useAppStore.getState().set({ images: newImages });
     }
   }
 
   async loadClasses(): Promise<void> {
-    const { folderHandle, labelFolderHandle, labelSegFolderHandle, currentTask } = state.data;
+    const { folderHandle, labelFolderHandle, labelSegFolderHandle, currentTask } = useAppStore.getState();
     if (!folderHandle) return;
 
     const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
@@ -137,19 +137,19 @@ export class FileSystemManager {
       const content = await file.text();
       const classes = YoloHelper.parseClasses(content);
       if (classes.length > 0) {
-        state.set({ classes, selectedClassId: classes[0]!.id });
+        useAppStore.getState().set({ classes, selectedClassId: classes[0]!.id });
       } else {
-        state.set({ classes: [], selectedClassId: null });
+        useAppStore.getState().set({ classes: [], selectedClassId: null });
       }
     } catch (e) {
-      state.set({ classes: [], selectedClassId: null });
+      useAppStore.getState().set({ classes: [], selectedClassId: null });
     }
   }
 
   async loadAnnotations(imgName: string, bitmap: ImageBitmap): Promise<BoundingBox[]> {
     const txtName = imgName.replace(/\.[^/.]+$/, '') + '.txt';
-    const isSeg = state.data.currentTask === 'segmentation';
-    const folder = isSeg ? state.data.labelSegFolderHandle : state.data.labelFolderHandle;
+    const isSeg = useAppStore.getState().currentTask === 'segmentation';
+    const folder = isSeg ? useAppStore.getState().labelSegFolderHandle : useAppStore.getState().labelFolderHandle;
     if (!folder) return [];
 
     try {
@@ -183,10 +183,10 @@ export class FileSystemManager {
     
     // Capture the state at the exact moment the save was requested
     this._pendingSaveData = {
-      index: state.data.currentImageIndex,
-      annotations: [...state.data.annotations],
-      bitmap: state.data.currentImageBitmap,
-      task: state.data.currentTask,
+      index: useAppStore.getState().currentImageIndex,
+      annotations: [...useAppStore.getState().annotations],
+      bitmap: useAppStore.getState().currentImageBitmap,
+      task: useAppStore.getState().currentTask,
     };
     
     this._saveTimer = setTimeout(() => {
@@ -223,18 +223,18 @@ export class FileSystemManager {
   async saveAnnotations(
     index: number,
     annotations: BoundingBox[],
-    bitmap: ImageBitmap | null = state.data.currentImageBitmap,
+    bitmap: ImageBitmap | null = useAppStore.getState().currentImageBitmap,
     skipUI = false,
-    task: 'detection' | 'segmentation' = state.data.currentTask
+    task: 'detection' | 'segmentation' = useAppStore.getState().currentTask
   ): Promise<void> {
-    if (!state.data.folderHandle || !bitmap) return;
+    if (!useAppStore.getState().folderHandle || !bitmap) return;
 
     this._saveQueue = this._saveQueue.then(async () => {
-      const imgInfo = state.data.images[index];
+      const imgInfo = useAppStore.getState().images[index];
       if (!imgInfo) return;
       const txtName = imgInfo.name.replace(/\.[^/.]+$/, '') + '.txt';
       const isSeg = task === 'segmentation';
-      const folder = isSeg ? state.data.labelSegFolderHandle : state.data.labelFolderHandle;
+      const folder = isSeg ? useAppStore.getState().labelSegFolderHandle : useAppStore.getState().labelFolderHandle;
       if (!folder) return;
 
       try {
@@ -276,7 +276,7 @@ export class FileSystemManager {
       labelSegFolderHandle,
       currentTask,
       classes: stateClasses,
-    } = state.data;
+    } = useAppStore.getState();
     const classes = classesOverride || stateClasses;
     const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
 
@@ -294,7 +294,7 @@ export class FileSystemManager {
   }
 
   async migrateDatasetOnDelete(deletedId: number): Promise<void> {
-    const { labelFolderHandle, labelSegFolderHandle, currentTask, images } = state.data;
+    const { labelFolderHandle, labelSegFolderHandle, currentTask, images } = useAppStore.getState();
     const targetFolder = currentTask === 'segmentation' ? labelSegFolderHandle : labelFolderHandle;
     if (!targetFolder) return;
 

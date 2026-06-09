@@ -1,4 +1,4 @@
-import { state } from '../core/state';
+import { useAppStore } from '../core/store';
 import { ai } from '../core/ai';
 import { YoloHelper } from '../utils/yolo';
 import { BoundingBox, CanvasInteraction, Point } from '../core/types';
@@ -7,7 +7,7 @@ export class Renderer {
   constructor(private ctx: CanvasRenderingContext2D) {}
 
   draw(logicalWidth: number, logicalHeight: number, interaction: CanvasInteraction | null, polygonCursorPos: Point | null = null): void {
-    const { zoom, pan, currentImageBitmap, annotations } = state.data;
+    const { zoom, pan, currentImageBitmap, annotations } = useAppStore.getState();
 
     // 1. Clear with Theme Background
     this.ctx.fillStyle = '#242C2E';
@@ -55,7 +55,7 @@ export class Renderer {
 
       this.ctx.save();
       this.ctx.strokeStyle = color;
-      this.ctx.lineWidth = 2 / state.data.zoom;
+      this.ctx.lineWidth = 2 / useAppStore.getState().zoom;
       this.ctx.strokeRect(x, y, w, h);
 
       this.ctx.fillStyle = isExclude ? 'rgba(239, 68, 68, 0.15)' : 'rgba(6, 182, 212, 0.15)';
@@ -65,7 +65,7 @@ export class Renderer {
   }
 
   private drawActivePolygon(cursorPos: Point | null): void {
-    const { activePolygon, zoom } = state.data;
+    const { activePolygon, zoom } = useAppStore.getState();
     if (!activePolygon || activePolygon.length === 0) return;
 
     this.ctx.save();
@@ -135,7 +135,7 @@ export class Renderer {
   }
 
   private drawSAMOverlay(): void {
-    const { activeMask, promptPoints, zoom, currentImageBitmap } = state.data;
+    const { activeMask, promptPoints, zoom, currentImageBitmap } = useAppStore.getState();
     if (!currentImageBitmap) return;
 
     if (activeMask) {
@@ -190,7 +190,7 @@ export class Renderer {
   }
 
   private drawAnnotations(annotations: BoundingBox[]): void {
-    const { selectedBoxId, zoom, classes } = state.data;
+    const { selectedBoxId, zoom, classes } = useAppStore.getState();
 
     const drawBox = (box: BoundingBox) => {
       const isSelected = box.id === selectedBoxId;
@@ -246,10 +246,10 @@ export class Renderer {
   }
 
   private drawHandles(box: BoundingBox, color: string): void {
-    const size = 8 / state.data.zoom;
+    const size = 8 / useAppStore.getState().zoom;
     this.ctx.fillStyle = '#fff';
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 1 / state.data.zoom;
+    this.ctx.lineWidth = 1 / useAppStore.getState().zoom;
 
     if (box.polygon) {
       box.polygon.forEach((p) => {
@@ -280,12 +280,12 @@ export class Renderer {
   }
 
   private drawLabel(box: BoundingBox, name: string, color: string): void {
-    const fontSize = 14 / state.data.zoom;
+    const fontSize = 14 / useAppStore.getState().zoom;
     this.ctx.font = `600 ${fontSize}px 'Inter', system-ui, sans-serif`;
 
-    const padding = 5 / state.data.zoom;
-    const chevronSize = 6 / state.data.zoom;
-    const chevronGap = 6 / state.data.zoom;
+    const padding = 5 / useAppStore.getState().zoom;
+    const chevronSize = 6 / useAppStore.getState().zoom;
+    const chevronGap = 6 / useAppStore.getState().zoom;
 
     const textWidth = this.ctx.measureText(name).width;
     const bgWidth = textWidth + padding * 2 + chevronSize + chevronGap;
@@ -294,7 +294,7 @@ export class Renderer {
     let startX = box.x;
     let startY = box.y;
 
-    if (state.data.currentTask === 'segmentation') {
+    if (useAppStore.getState().currentTask === 'segmentation') {
       if (box.polygon && box.polygon.length > 0) {
         let minNode = box.polygon[0]!;
         for (let i = 1; i < box.polygon.length; i++) {
@@ -304,7 +304,7 @@ export class Renderer {
           }
         }
         startX = minNode[0] - bgWidth / 2;
-        startY = minNode[1] - (10 / state.data.zoom);
+        startY = minNode[1] - (10 / useAppStore.getState().zoom);
       } else {
         startX = box.x + box.width / 2 - bgWidth / 2;
       }
@@ -338,9 +338,9 @@ export class Renderer {
     dropdown.style.left = `${clientX}px`;
     dropdown.style.top = `${clientY}px`;
 
-    const box = state.data.annotations.find((b) => b.id === boxId);
+    const box = useAppStore.getState().annotations.find((b) => b.id === boxId);
 
-    state.data.classes.forEach((cls) => {
+    useAppStore.getState().classes.forEach((cls) => {
       const isCurrent = cls.id === box?.classId;
       const item = document.createElement('div');
       item.className = `dropdown-item ${isCurrent ? 'active' : ''}`;
@@ -352,15 +352,15 @@ export class Renderer {
       item.onclick = (e) => {
         e.stopPropagation();
 
-        const boxToUpdate = state.data.annotations.find((b) => b.id === boxId);
+        const boxToUpdate = useAppStore.getState().annotations.find((b) => b.id === boxId);
         if (boxToUpdate && boxToUpdate.classId !== -1) {
-          state.saveHistory();
+          
         }
 
-        const annotations = state.data.annotations.map((b) =>
+        const annotations = useAppStore.getState().annotations.map((b) =>
           b.id === boxId ? { ...b, classId: cls.id } : b
         );
-        state.set({ annotations });
+        useAppStore.getState().set({ annotations });
         dropdown.remove();
       };
       dropdown.appendChild(item);

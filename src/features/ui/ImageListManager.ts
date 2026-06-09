@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { ImageEntry } from '../../core/types';
 
 export class ImageListManager {
@@ -15,7 +15,7 @@ export class ImageListManager {
     }
     this.container.innerHTML = images
       .map((img, idx) => {
-        const isActive = idx === state.data.currentImageIndex;
+        const isActive = idx === useAppStore.getState().currentImageIndex;
         const itemClasses = isActive
           ? 'bg-(--accent)/10 text-(--accent-light) font-semibold ring-1 ring-(--accent)/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:bg-(--accent)/20'
           : 'text-(--text-muted) hover:bg-(--bg-hover) hover:text-(--text-primary)';
@@ -33,7 +33,7 @@ export class ImageListManager {
       item.addEventListener('click', () => {
         const element = item as HTMLElement;
         const index = parseInt(element.dataset.index || '0');
-        state.set({ currentImageIndex: index });
+        useAppStore.getState().set({ currentImageIndex: index });
       });
     });
   }

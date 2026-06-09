@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 import { ExportFormat } from '../../utils/exporters';
 
 export interface UIManagerConfig {
@@ -80,14 +80,14 @@ export class UIManager {
 
   private initEventListeners(): void {
     this.dom.btnDraw.addEventListener('click', () => {
-      const isDet = state.data.currentTask === 'detection';
-      state.set({ mode: isDet ? 'draw' : 'magic' });
+      const isDet = useAppStore.getState().currentTask === 'detection';
+      useAppStore.getState().set({ mode: isDet ? 'draw' : 'magic' });
     });
     this.dom.btnPolygon.addEventListener('click', () => {
-      const isSeg = state.data.currentTask === 'segmentation';
-      if (isSeg) state.set({ mode: 'polygon' });
+      const isSeg = useAppStore.getState().currentTask === 'segmentation';
+      if (isSeg) useAppStore.getState().set({ mode: 'polygon' });
     });
-    this.dom.btnSelect.addEventListener('click', () => state.set({ mode: 'select' }));
+    this.dom.btnSelect.addEventListener('click', () => useAppStore.getState().set({ mode: 'select' }));
     this.dom.btnOpen.addEventListener('click', () => this.config.onOpenFolder());
 
     window.addEventListener('status-update', (e: Event) => {
@@ -116,8 +116,8 @@ export class UIManager {
     });
 
     this.dom.btnClearAll.addEventListener('click', () => this.config.onClearAllAnnotations());
-    this.dom.btnTaskDet.addEventListener('click', () => state.set({ currentTask: 'detection' }));
-    this.dom.btnTaskSeg.addEventListener('click', () => state.set({ currentTask: 'segmentation' }));
+    this.dom.btnTaskDet.addEventListener('click', () => useAppStore.getState().set({ currentTask: 'detection' }));
+    this.dom.btnTaskSeg.addEventListener('click', () => useAppStore.getState().set({ currentTask: 'segmentation' }));
 
     this.dom.btnNext.addEventListener('click', () => this.config.onNextImage());
     this.dom.btnPrev.addEventListener('click', () => this.config.onPrevImage());
@@ -171,9 +171,9 @@ export class UIManager {
     this.dom.btnTaskSeg.classList.toggle('active-task-btn', !isDet);
     this.dom.btnTaskSeg.classList.toggle('text-(--text-muted)', isDet);
 
-    if (state.data.mode === 'draw' && !isDet) state.set({ mode: 'magic' });
-    if (state.data.mode === 'magic' && isDet) state.set({ mode: 'draw' });
-    if (state.data.mode === 'polygon' && isDet) state.set({ mode: 'draw' });
+    if (useAppStore.getState().mode === 'draw' && !isDet) useAppStore.getState().set({ mode: 'magic' });
+    if (useAppStore.getState().mode === 'magic' && isDet) useAppStore.getState().set({ mode: 'draw' });
+    if (useAppStore.getState().mode === 'polygon' && isDet) useAppStore.getState().set({ mode: 'draw' });
     
     this.dom.btnPolygon.style.display = isDet ? 'none' : 'flex';
   }

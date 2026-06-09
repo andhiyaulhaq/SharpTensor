@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore, HistoryManager } from '../../core/store';
 import { ImageCacheEntry } from '../../core/types';
 import { FileSystemManager } from '../fs/FileSystemManager';
 import { CanvasEngine } from '../../engine/canvas';
@@ -23,23 +23,23 @@ export class WorkspaceManager {
   }
 
   async loadImage(index: number): Promise<void> {
-    if (index < 0 || index >= state.data.images.length) return;
-    const imageInfo = state.data.images[index];
+    if (index < 0 || index >= useAppStore.getState().images.length) return;
+    const imageInfo = useAppStore.getState().images[index];
     if (!imageInfo) return;
 
     // 1. Check Cache for Instant Render
     const cached = this.imageCache.get(index);
     if (cached) {
-      let taskAnnos = state.data.currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
+      let taskAnnos = useAppStore.getState().currentTask === 'detection' ? cached.detAnnos : cached.segAnnos;
       
       // If the image was preloaded in a different task, we need to load the missing annotations from disk now.
       if (taskAnnos === undefined) {
         taskAnnos = await this.fileSystemManager.loadAnnotations(imageInfo.name, cached.bitmap);
-        if (state.data.currentTask === 'detection') cached.detAnnos = taskAnnos;
+        if (useAppStore.getState().currentTask === 'detection') cached.detAnnos = taskAnnos;
         else cached.segAnnos = taskAnnos;
       }
 
-      state.set({
+      useAppStore.getState().set({
         currentImageIndex: index,
         currentImageBitmap: cached.bitmap,
         annotations: taskAnnos,
@@ -53,7 +53,7 @@ export class WorkspaceManager {
       this.canvasEngine.draw();
 
       // Background SAM Warmup (with cache key)
-      if (state.data.currentTask === 'segmentation') {
+      if (useAppStore.getState().currentTask === 'segmentation') {
         setTimeout(() => ai.setSAMImage(cached.bitmap, imageInfo.name), 50);
       }
 
@@ -63,7 +63,7 @@ export class WorkspaceManager {
 
     // 2. Fallback to Slow Load
     try {
-      state.set({ loading: true, statusMessage: `Loading ${imageInfo.name}...` });
+      useAppStore.getState().set({ loading: true, statusMessage: `Loading ${imageInfo.name}...` });
       const file = await (imageInfo.handle as any).getFile();
       const bitmap = await createImageBitmap(file);
       const annotations = await this.fileSystemManager.loadAnnotations(imageInfo.name, bitmap);
@@ -72,7 +72,7 @@ export class WorkspaceManager {
 
       // Store in Cache
       const cacheEntry: ImageCacheEntry = { bitmap };
-      if (state.data.currentTask === 'detection') cacheEntry.detAnnos = annotations;
+      if (useAppStore.getState().currentTask === 'detection') cacheEntry.detAnnos = annotations;
       else cacheEntry.segAnnos = annotations;
 
       this.imageCache.set(index, cacheEntry);
@@ -81,10 +81,10 @@ export class WorkspaceManager {
         if (oldestIndex !== undefined) this.imageCache.delete(oldestIndex);
       }
 
-      state.clearHistory(true);
-      state.saveHistory();
+      HistoryManager.clear();
+      
 
-      state.set({
+      useAppStore.getState().set({
         currentImageIndex: index,
         currentImageBitmap: bitmap,
         annotations: annotations || [],
@@ -95,7 +95,7 @@ export class WorkspaceManager {
         activePromptBox: null,
       });
 
-      if (state.data.currentTask === 'segmentation') {
+      if (useAppStore.getState().currentTask === 'segmentation') {
         setTimeout(() => ai.setSAMImage(bitmap, imageInfo.name), 50);
       }
 
@@ -108,7 +108,7 @@ export class WorkspaceManager {
 
   async preloadNeighborhood(currentIndex: number): Promise<void> {
     const range = 7; // Preload 7 images before and after
-    const { images } = state.data;
+    const { images } = useAppStore.getState();
     console.log(
       `🔍 Explorer: Triggering neighborhood warmup for index ${currentIndex} (range: ${range})`
     );
@@ -125,22 +125,22 @@ export class WorkspaceManager {
   async preloadImage(index: number): Promise<void> {
     const cached = this.imageCache.get(index);
     if (cached) {
-      if (state.data.currentTask === 'segmentation') {
-        const imageInfo = state.data.images[index];
+      if (useAppStore.getState().currentTask === 'segmentation') {
+        const imageInfo = useAppStore.getState().images[index];
         if (imageInfo) ai.setSAMImage(cached.bitmap, imageInfo.name);
       }
       return;
     }
 
     try {
-      const imageInfo = state.data.images[index];
+      const imageInfo = useAppStore.getState().images[index];
       if (!imageInfo) return;
       const file = await (imageInfo.handle as any).getFile();
       const bitmap = await createImageBitmap(file);
       const annotations = await this.fileSystemManager.loadAnnotations(imageInfo.name, bitmap);
 
       const cacheEntry: ImageCacheEntry = { bitmap };
-      if (state.data.currentTask === 'detection') cacheEntry.detAnnos = annotations;
+      if (useAppStore.getState().currentTask === 'detection') cacheEntry.detAnnos = annotations;
       else cacheEntry.segAnnos = annotations;
 
       this.imageCache.set(index, cacheEntry);
@@ -150,7 +150,7 @@ export class WorkspaceManager {
         if (oldestIndex !== undefined) this.imageCache.delete(oldestIndex);
       }
 
-      if (state.data.currentTask === 'segmentation') {
+      if (useAppStore.getState().currentTask === 'segmentation') {
         console.log(`🧠 Explorer: Warming up AI for neighbor: ${imageInfo.name}`);
         ai.setSAMImage(bitmap, imageInfo.name);
       }
@@ -160,7 +160,7 @@ export class WorkspaceManager {
   }
 
   async syncTaskAnnotations(): Promise<void> {
-    const { currentImageIndex, images, currentImageBitmap, currentTask } = state.data;
+    const { currentImageIndex, images, currentImageBitmap, currentTask } = useAppStore.getState();
     if (currentImageIndex === -1 || !currentImageBitmap) return;
 
     const imageInfo = images[currentImageIndex];
@@ -171,7 +171,7 @@ export class WorkspaceManager {
     if (cacheEntry) {
       const taskAnnos = currentTask === 'detection' ? cacheEntry.detAnnos : cacheEntry.segAnnos;
       if (taskAnnos) {
-        state.set({
+        useAppStore.getState().set({
           annotations: taskAnnos,
           activeMask: null,
           promptPoints: [],
@@ -186,7 +186,7 @@ export class WorkspaceManager {
     }
 
     // 2. Optimistic Clear for Responsiveness
-    state.set({ annotations: [], activeMask: null, promptPoints: [], activePromptBox: null });
+    useAppStore.getState().set({ annotations: [], activeMask: null, promptPoints: [], activePromptBox: null });
     this.updateStatus(`Syncing ${currentTask.toUpperCase()}...`);
 
     try {
@@ -197,7 +197,7 @@ export class WorkspaceManager {
         else cacheEntry.segAnnos = annotations;
       }
 
-      state.set({ annotations: annotations || [] });
+      useAppStore.getState().set({ annotations: annotations || [] });
       
       if (currentTask === 'segmentation') {
         setTimeout(() => ai.setSAMImage(currentImageBitmap, imageInfo.name), 50);
@@ -222,24 +222,24 @@ export class WorkspaceManager {
     const panX = (rect.width - bitmap.width * scale) / 2;
     const panY = (rect.height - bitmap.height * scale) / 2;
 
-    state.set({ zoom: scale, pan: { x: panX, y: panY } });
+    useAppStore.getState().set({ zoom: scale, pan: { x: panX, y: panY } });
   }
 
   nextImage(): void {
-    if (state.data.images.length === 0) return;
-    const nextIdx = (state.data.currentImageIndex + 1) % state.data.images.length;
+    if (useAppStore.getState().images.length === 0) return;
+    const nextIdx = (useAppStore.getState().currentImageIndex + 1) % useAppStore.getState().images.length;
     this.loadImage(nextIdx);
   }
 
   prevImage(): void {
-    if (state.data.images.length === 0) return;
-    let prevIdx = state.data.currentImageIndex - 1;
-    if (prevIdx < 0) prevIdx = state.data.images.length - 1;
+    if (useAppStore.getState().images.length === 0) return;
+    let prevIdx = useAppStore.getState().currentImageIndex - 1;
+    if (prevIdx < 0) prevIdx = useAppStore.getState().images.length - 1;
     this.loadImage(prevIdx);
   }
 
   updateCacheForCurrentTask(annotations: any[]): void {
-    const { currentImageIndex, currentTask } = state.data;
+    const { currentImageIndex, currentTask } = useAppStore.getState();
     if (currentImageIndex !== -1) {
       this.updateCacheForIndex(currentImageIndex, annotations, currentTask);
     }

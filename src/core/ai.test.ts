@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AIEngine } from './ai';
-import { state } from './state';
+import { useAppStore } from './store';
 
 vi.mock('./state', () => ({
   state: {
@@ -49,7 +49,7 @@ describe('AIEngine', () => {
     } as any);
 
     const loadPromise = engine.loadModels();
-    expect(state.set).toHaveBeenCalledWith({ modelStatus: 'loading' });
+    expect(useAppStore.getState().set).toHaveBeenCalledWith({ modelStatus: 'loading' });
     expect(engine['worker']!.postMessage).toHaveBeenCalledWith({
       type: 'init',
       payload: expect.any(Object),
@@ -57,7 +57,7 @@ describe('AIEngine', () => {
 
     await loadPromise;
     expect(engine.isLoaded).toBe(true);
-    expect(state.set).toHaveBeenCalledWith(
+    expect(useAppStore.getState().set).toHaveBeenCalledWith(
       expect.objectContaining({
         modelStatus: 'ready',
       })
@@ -82,7 +82,7 @@ describe('AIEngine', () => {
 
     const entry = engine['embeddingCache'].get('test.jpg');
     expect(entry).toHaveProperty('embeddings');
-    expect(state.set).toHaveBeenCalledWith({ modelStatus: 'ready' });
+    expect(useAppStore.getState().set).toHaveBeenCalledWith({ modelStatus: 'ready' });
   });
 
   it('should handle worker detect response', () => {

@@ -1,4 +1,4 @@
-import { state } from '../../core/state';
+import { useAppStore } from '../../core/store';
 
 export interface TourManagerConfig {
   dom: {
@@ -21,7 +21,7 @@ export class TourManager {
   }
 
   startTour(): void {
-    state.set({ tourActive: true, tourStep: 'step1-autolabel' });
+    useAppStore.getState().set({ tourActive: true, tourStep: 'step1-autolabel' });
     this.dom.btnAutoLabelAll.classList.add('tour-highlight');
     this.renderTourOverlay([this.dom.btnAutoLabelAll]);
     this.renderTourTooltip(
@@ -32,10 +32,10 @@ export class TourManager {
   }
 
   advanceTour(step: 'step2-interact' | 'complete'): void {
-    if (!state.data.tourActive) return;
+    if (!useAppStore.getState().tourActive) return;
 
     if (step === 'step2-interact') {
-      state.set({ tourStep: 'step2-interact' });
+      useAppStore.getState().set({ tourStep: 'step2-interact' });
       this.dom.btnAutoLabelAll.classList.remove('tour-highlight');
       
       this.dom.btnDraw.classList.add('tour-highlight');
@@ -47,7 +47,7 @@ export class TourManager {
         "Awesome! Now select the **Draw Mode (W)** to manually add a box, or **Select Mode (V)** to adjust the generated ones."
       );
     } else if (step === 'complete') {
-      state.set({ tourActive: false, tourStep: 'complete' });
+      useAppStore.getState().set({ tourActive: false, tourStep: 'complete' });
       this.dom.btnAutoLabelAll.classList.remove('tour-highlight');
       this.dom.btnDraw.classList.remove('tour-highlight');
       this.dom.btnSelect.classList.remove('tour-highlight');
@@ -66,11 +66,11 @@ export class TourManager {
   }
 
   private handleTourResize = () => {
-    if (!state.data.tourActive) return;
-    if (state.data.tourStep === 'step1-autolabel') {
+    if (!useAppStore.getState().tourActive) return;
+    if (useAppStore.getState().tourStep === 'step1-autolabel') {
       this.renderTourOverlay([this.dom.btnAutoLabelAll]);
       this.renderTourTooltip(this.dom.btnAutoLabelAll, "Welcome to SharpTensor! Click here to automatically detect objects using the YOLOv8 AI.");
-    } else if (state.data.tourStep === 'step2-interact') {
+    } else if (useAppStore.getState().tourStep === 'step2-interact') {
       this.renderTourOverlay([this.dom.btnDraw, this.dom.btnSelect]);
       this.renderTourTooltip(this.dom.btnDraw, "Awesome! Now select the **Draw Mode (W)** to manually add a box, or **Select Mode (V)** to adjust the generated ones.");
     }
