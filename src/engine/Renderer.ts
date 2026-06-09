@@ -202,19 +202,48 @@ export class Renderer {
       this.ctx.lineWidth = 2 / zoom;
 
       if (box.polygon && box.polygon.length > 0) {
-        this.ctx.beginPath();
-        const startPoint = box.polygon[0];
-        if (startPoint) {
-          this.ctx.moveTo(startPoint[0], startPoint[1]);
-          for (let i = 1; i < box.polygon.length; i++) {
-            const p = box.polygon[i];
-            if (p) this.ctx.lineTo(p[0], p[1]);
+        const state = useAppStore.getState();
+        const hoveredEdgeIdx = state.hoveredBoxId === box.id && state.hoveredHandle?.startsWith('edge_') 
+          ? parseInt(state.hoveredHandle.split('_')[1]!, 10) 
+          : -1;
+        const activeEdgeIdx = state.activeHandle?.startsWith('edge_') 
+          ? parseInt(state.activeHandle.split('_')[1]!, 10) 
+          : -1;
+
+        // Draw segments individually to support edge highlighting
+        for (let i = 0; i < box.polygon.length; i++) {
+          const p1 = box.polygon[i]!;
+          const p2 = box.polygon[(i + 1) % box.polygon.length]!;
+          
+          this.ctx.beginPath();
+          this.ctx.moveTo(p1[0], p1[1]);
+          this.ctx.lineTo(p2[0], p2[1]);
+          
+          if (activeEdgeIdx === i) {
+            this.ctx.lineWidth = 4 / zoom;
+            this.ctx.strokeStyle = '#ffffff';
+          } else if (hoveredEdgeIdx === i) {
+            this.ctx.lineWidth = 3 / zoom;
+            this.ctx.strokeStyle = '#ffffff';
+          } else {
+            this.ctx.lineWidth = 2 / zoom;
+            this.ctx.strokeStyle = color;
           }
+          this.ctx.stroke();
         }
-        this.ctx.closePath();
-        this.ctx.stroke();
 
         if (isSelected) {
+          // Re-build contiguous path for the translucent fill
+          this.ctx.beginPath();
+          const startPoint = box.polygon[0];
+          if (startPoint) {
+            this.ctx.moveTo(startPoint[0], startPoint[1]);
+            for (let i = 1; i < box.polygon.length; i++) {
+              const p = box.polygon[i];
+              if (p) this.ctx.lineTo(p[0], p[1]);
+            }
+          }
+          this.ctx.closePath();
           this.ctx.fillStyle = YoloHelper.withAlpha(color, 0.25);
           this.ctx.fill();
         }

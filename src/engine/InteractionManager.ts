@@ -8,6 +8,7 @@ export class InteractionManager {
   interaction: CanvasInteraction | null = null;
   private lastMousePos: Point = { x: 0, y: 0 };
   private polygonCursorImgPos: Point | null = null;
+  private preventNextContextMenu: boolean = false;
 
   public getPolygonCursorPos(): Point | null {
     return this.polygonCursorImgPos;
@@ -74,7 +75,29 @@ export class InteractionManager {
 
     // Prevent Context Menu on Canvas (for right-click prompts)
     this.canvas.addEventListener('contextmenu', (e: MouseEvent) => {
-      if (useAppStore.getState().mode === 'magic') e.preventDefault();
+      const state = useAppStore.getState();
+      
+      if (state.mode === 'magic') {
+        e.preventDefault();
+        return;
+      }
+
+      if (this.preventNextContextMenu) {
+        e.preventDefault();
+        this.preventNextContextMenu = false;
+        return;
+      }
+
+      // Prevent context menu specifically when right-clicking on a polygon node in segmentation mode
+      if (state.currentTask === 'segmentation') {
+        const { x, y } = this.getMousePos(e);
+        const imgPos = this.screenToImage(x, y);
+        const hit = this.hitTester.hitTest(imgPos.x, imgPos.y);
+        
+        if (hit && hit.handle && hit.handle.startsWith('vertex_')) {
+          e.preventDefault();
+        }
+      }
     });
   }
 
@@ -128,7 +151,7 @@ export class InteractionManager {
       return;
     }
 
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.button !== 2) return;
 
     // 3. Interaction with existing boxes
     const hit = this.hitTester.hitTest(imgPos.x, imgPos.y);
@@ -147,6 +170,22 @@ export class InteractionManager {
       if (hit.handle) {
         if (hit.handle.startsWith('vertex_')) {
           const vIdx = parseInt(hit.handle.split('_')[1]!, 10);
+          
+          // Delete node on right click
+          if (e.button === 2) {
+            this.preventNextContextMenu = true;
+            if (targetBox.polygon && targetBox.polygon.length > 3) {
+              const newPoly = [...targetBox.polygon];
+              newPoly.splice(vIdx, 1);
+              useAppStore.getState().set({
+                annotations: useAppStore.getState().annotations.map((b) =>
+                  b.id === hit.boxId ? { ...b, polygon: newPoly } : b
+                ),
+              });
+            }
+            return;
+          }
+
           this.interaction = {
             type: 'move_vertex',
             boxId: hit.boxId,
@@ -156,7 +195,43 @@ export class InteractionManager {
           };
           useAppStore.getState().set({ activeHandle: hit.handle });
           this.canvas.style.cursor = 'grabbing';
+        } else if (hit.handle.startsWith('edge_')) {
+          if (e.button === 2) return; // ignore right clicks on edges
+          
+          const edgeIdx = parseInt(hit.handle.split('_')[1]!, 10);
+          
+          if (e.detail === 2) {
+            const newPoly = [...targetBox.polygon!];
+            newPoly.splice(edgeIdx + 1, 0, [imgPos.x, imgPos.y]);
+            
+            useAppStore.getState().set({
+              annotations: useAppStore.getState().annotations.map((b) =>
+                b.id === hit.boxId ? { ...b, polygon: newPoly } : b
+              ),
+            });
+            
+            this.interaction = {
+              type: 'move_vertex',
+              boxId: hit.boxId,
+              vertexIndex: edgeIdx + 1,
+              startImgPos: imgPos,
+              startPolygon: newPoly,
+            };
+            useAppStore.getState().set({ activeHandle: `vertex_${edgeIdx + 1}` });
+            this.canvas.style.cursor = 'grabbing';
+          } else {
+            this.interaction = {
+              type: 'move_edge',
+              boxId: hit.boxId,
+              edgeIndex: edgeIdx,
+              startImgPos: imgPos,
+              startPolygon: JSON.parse(JSON.stringify(targetBox.polygon)),
+            };
+            useAppStore.getState().set({ activeHandle: hit.handle });
+            this.canvas.style.cursor = 'move';
+          }
         } else {
+          if (e.button === 2) return; // ignore right clicks on resize handles
           this.interaction = {
             type: 'resize',
             handle: hit.handle as ResizeHandle,
@@ -175,6 +250,8 @@ export class InteractionManager {
       }
       return;
     }
+
+    if (e.button === 2) return; // ignore right clicks on empty canvas area
 
     // Draw mode - Create new box
     const state = useAppStore.getState();
@@ -255,6 +332,8 @@ export class InteractionManager {
         } else if (hit.handle) {
           if (hit.handle.startsWith('vertex_')) {
             this.canvas.style.cursor = 'grab';
+          } else if (hit.handle.startsWith('edge_')) {
+            this.canvas.style.cursor = 'move';
           } else {
             const cursorMap: Record<string, string> = {
               nw: 'nwse-resize', se: 'nwse-resize',
@@ -281,7 +360,7 @@ export class InteractionManager {
       const { x, y } = this.getMousePos(e);
       const imgPos = this.screenToImage(x, y);
 
-      if (this.interaction.type === 'move' || this.interaction.type === 'resize' || this.interaction.type === 'move_vertex') {
+      if (this.interaction.type === 'move' || this.interaction.type === 'resize' || this.interaction.type === 'move_vertex' || this.interaction.type === 'move_edge') {
         useAppStore.getState().set({ activeHandle: null });
       }
 
@@ -365,6 +444,29 @@ export class InteractionManager {
         
         newPolygon[vertexIndex][0] = Math.max(0, Math.min(startPolygon[vertexIndex][0] + dx, imgWidth));
         newPolygon[vertexIndex][1] = Math.max(0, Math.min(startPolygon[vertexIndex][1] + dy, imgHeight));
+        
+        b.polygon = newPolygon;
+        
+        const xs = newPolygon.map((p: any) => p[0]);
+        const ys = newPolygon.map((p: any) => p[1]);
+        b.x = Math.min(...xs);
+        b.y = Math.min(...ys);
+        b.width = Math.max(...xs) - b.x;
+        b.height = Math.max(...ys) - b.y;
+        
+        return b;
+      }
+
+      if (type === 'move_edge') {
+        const { edgeIndex, startPolygon } = this.interaction as any;
+        const b = { ...box };
+        const newPolygon = JSON.parse(JSON.stringify(startPolygon));
+        const nextIndex = (edgeIndex + 1) % newPolygon.length;
+        
+        newPolygon[edgeIndex][0] = Math.max(0, Math.min(startPolygon[edgeIndex][0] + dx, imgWidth));
+        newPolygon[edgeIndex][1] = Math.max(0, Math.min(startPolygon[edgeIndex][1] + dy, imgHeight));
+        newPolygon[nextIndex][0] = Math.max(0, Math.min(startPolygon[nextIndex][0] + dx, imgWidth));
+        newPolygon[nextIndex][1] = Math.max(0, Math.min(startPolygon[nextIndex][1] + dy, imgHeight));
         
         b.polygon = newPolygon;
         

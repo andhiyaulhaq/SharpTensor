@@ -113,7 +113,8 @@ export type CanvasInteraction =
       startBox: BoundingBox;
     }
   | { type: 'magic'; startImgPos: Point; button: number; isDrag: boolean; currentImgPos?: Point }
-  | { type: 'move_vertex'; boxId: number; vertexIndex: number; startImgPos: Point; startPolygon: [number, number][] };
+  | { type: 'move_vertex'; boxId: number; vertexIndex: number; startImgPos: Point; startPolygon: [number, number][] }
+  | { type: 'move_edge'; boxId: number; edgeIndex: number; startImgPos: Point; startPolygon: [number, number][] };
 
 // Embedding Cache
 export interface EmbeddingCacheEntry {

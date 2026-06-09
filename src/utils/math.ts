@@ -22,6 +22,26 @@ export class MathUtils {
   }
 
   /**
+   * Calculate the distance from a point to a line segment.
+   * @param p Point coordinates
+   * @param v Start coordinates of the segment
+   * @param w End coordinates of the segment
+   * @returns The exact distance from the point to the segment
+   */
+  static distanceToLineSegment(p: [number, number], v: [number, number], w: [number, number]): number {
+    const l2 = Math.pow(w[0] - v[0], 2) + Math.pow(w[1] - v[1], 2);
+    if (l2 === 0) return Math.sqrt(Math.pow(p[0] - v[0], 2) + Math.pow(p[1] - v[1], 2));
+    
+    let t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
+    t = Math.max(0, Math.min(1, t));
+    
+    const projX = v[0] + t * (w[0] - v[0]);
+    const projY = v[1] + t * (w[1] - v[1]);
+    
+    return Math.sqrt(Math.pow(p[0] - projX, 2) + Math.pow(p[1] - projY, 2));
+  }
+
+  /**
    * Ramer-Douglas-Peucker algorithm for polygon simplification.
    * @param points Array of [x, y] coordinates
    * @param epsilon Tolerance for simplification

@@ -41,6 +41,15 @@ export class HitTester {
               return { boxId: box.id, handle: `vertex_${v}` };
             }
           }
+          // 2.5 Check edges if no vertex hit
+          for (let v = 0; v < box.polygon.length; v++) {
+            const p1 = box.polygon[v]!;
+            const p2 = box.polygon[(v + 1) % box.polygon.length]!;
+            const dist = MathUtils.distanceToLineSegment([x, y], p1, p2);
+            if (dist < 5 / zoom) {
+              return { boxId: box.id, handle: `edge_${v}` };
+            }
+          }
         } else {
           const handles: Record<string, Point> = {
             nw: { x: box.x, y: box.y },
