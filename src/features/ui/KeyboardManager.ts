@@ -55,6 +55,8 @@ export class KeyboardManager {
       if (key === 'enter') {
         if (state.data.mode === 'polygon' && state.data.activePolygon) {
           this.config.onConfirmPolygon();
+        } else if (state.data.mode === 'magic' && state.data.activeMask) {
+          this.config.onConfirmMagicMask();
         }
       }
       if (key === 'd') this.config.onNextImage();
