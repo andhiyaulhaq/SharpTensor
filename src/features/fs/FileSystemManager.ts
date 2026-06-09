@@ -162,7 +162,7 @@ export class FileSystemManager {
       const file = await fileHandle.getFile();
       const content = await file.text();
       return content
-        .split('\\n')
+        .split(/\r?\n|\r/)
         .filter((l) => l.trim())
         .map((line) => YoloHelper.fromYolo(line, bitmap.width, bitmap.height))
         .filter((b): b is BoundingBox => b !== null);
@@ -279,7 +279,7 @@ export class FileSystemManager {
         const file = await fileHandle.getFile();
         const content = await file.text();
         const newLines = content
-          .split('\\n')
+          .split(/\r?\n|\r/)
           .map((line) => {
             const parts = line.split(' ');
             const classId = parseInt(parts[0] || '0');
@@ -289,7 +289,7 @@ export class FileSystemManager {
           })
           .filter((l): l is string => l !== null);
         const writable = await fileHandle.createWritable();
-        await writable.write(newLines.join('\\n'));
+        await writable.write(newLines.join('\n'));
         await writable.close();
       } catch (e) {}
     }
