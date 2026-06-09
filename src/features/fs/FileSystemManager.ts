@@ -86,10 +86,9 @@ export class FileSystemManager {
 
     const existingFiles = new Set<string>();
     try {
-      // @ts-expect-error type override
-      for await (const [name, handle] of targetFolder.entries()) {
-        if (handle.kind === 'file' && name.endsWith('.txt')) {
-          existingFiles.add(name);
+      for await (const entry of (targetFolder as any).values()) {
+        if (entry.kind === 'file' && entry.name.endsWith('.txt')) {
+          existingFiles.add(entry.name);
         }
       }
       console.log(

@@ -30,6 +30,7 @@ export class AppState {
       interactionMode: 'select', // 'select' | 'draw' | 'magic'
       mode: 'select',
       loading: false,
+      activePolygon: null,
 
       // AI State
       aiModel: null, // { name }

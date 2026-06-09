@@ -1,5 +1,6 @@
 import { state } from '../core/state';
 import { Point } from '../core/types';
+import { MathUtils } from '../utils/math';
 
 export class HitTester {
   constructor(private ctx: CanvasRenderingContext2D) {}
@@ -32,27 +33,43 @@ export class HitTester {
 
       // 2. Check handles if selected
       if (box.id === selectedBoxId) {
-        const handles: Record<string, Point> = {
-          nw: { x: box.x, y: box.y },
-          n: { x: box.x + box.width / 2, y: box.y },
-          ne: { x: box.x + box.width, y: box.y },
-          e: { x: box.x + box.width, y: box.y + box.height / 2 },
-          se: { x: box.x + box.width, y: box.y + box.height },
-          s: { x: box.x + box.width / 2, y: box.y + box.height },
-          sw: { x: box.x, y: box.y + box.height },
-          w: { x: box.x, y: box.y + box.height / 2 },
-        };
+        if (box.polygon) {
+          for (let v = 0; v < box.polygon.length; v++) {
+            const px = box.polygon[v]![0];
+            const py = box.polygon[v]![1];
+            if (Math.abs(x - px) < halfSize && Math.abs(y - py) < halfSize) {
+              return { boxId: box.id, handle: `vertex_${v}` };
+            }
+          }
+        } else {
+          const handles: Record<string, Point> = {
+            nw: { x: box.x, y: box.y },
+            n: { x: box.x + box.width / 2, y: box.y },
+            ne: { x: box.x + box.width, y: box.y },
+            e: { x: box.x + box.width, y: box.y + box.height / 2 },
+            se: { x: box.x + box.width, y: box.y + box.height },
+            s: { x: box.x + box.width / 2, y: box.y + box.height },
+            sw: { x: box.x, y: box.y + box.height },
+            w: { x: box.x, y: box.y + box.height / 2 },
+          };
 
-        for (const [name, pos] of Object.entries(handles)) {
-          if (Math.abs(x - pos.x) < halfSize && Math.abs(y - pos.y) < halfSize) {
-            return { boxId: box.id, handle: name };
+          for (const [name, pos] of Object.entries(handles)) {
+            if (Math.abs(x - pos.x) < halfSize && Math.abs(y - pos.y) < halfSize) {
+              return { boxId: box.id, handle: name };
+            }
           }
         }
       }
 
       // 3. Check body
       if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
-        return { boxId: box.id, handle: null };
+        if (box.polygon) {
+          if (MathUtils.isPointInPolygon([x, y], box.polygon)) {
+            return { boxId: box.id, handle: null };
+          }
+        } else {
+          return { boxId: box.id, handle: null };
+        }
       }
     }
     return null;

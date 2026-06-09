@@ -78,7 +78,12 @@ export class CanvasEngine {
   }
 
   draw(): void {
-    this.renderer.draw(this.logicalWidth, this.logicalHeight, this.interactionManager.interaction);
+    this.renderer.draw(
+      this.logicalWidth, 
+      this.logicalHeight, 
+      this.interactionManager.interaction,
+      this.interactionManager.getPolygonCursorPos()
+    );
   }
 
   // Public methods needed by WorkspaceManager or Main

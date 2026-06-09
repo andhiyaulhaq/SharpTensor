@@ -6,7 +6,7 @@ import { BoundingBox, CanvasInteraction, Point } from '../core/types';
 export class Renderer {
   constructor(private ctx: CanvasRenderingContext2D) {}
 
-  draw(logicalWidth: number, logicalHeight: number, interaction: CanvasInteraction | null): void {
+  draw(logicalWidth: number, logicalHeight: number, interaction: CanvasInteraction | null, polygonCursorPos: Point | null = null): void {
     const { zoom, pan, currentImageBitmap, annotations } = state.data;
 
     // 1. Clear with Theme Background
@@ -34,6 +34,9 @@ export class Renderer {
     // 6. Draw Prompt Box (if dragging in magic mode)
     this.drawPromptBox(interaction);
 
+    // 7. Draw Active Polygon (if in polygon mode)
+    this.drawActivePolygon(polygonCursorPos);
+
     this.ctx.restore();
   }
 
@@ -59,6 +62,76 @@ export class Renderer {
       this.ctx.fillRect(x, y, w, h);
       this.ctx.restore();
     }
+  }
+
+  private drawActivePolygon(cursorPos: Point | null): void {
+    const { activePolygon, zoom } = state.data;
+    if (!activePolygon || activePolygon.length === 0) return;
+
+    this.ctx.save();
+    
+    // Draw polygon fill
+    if (activePolygon.length >= 3) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(activePolygon[0]![0], activePolygon[0]![1]);
+      for (let i = 1; i < activePolygon.length; i++) {
+        this.ctx.lineTo(activePolygon[i]![0], activePolygon[i]![1]);
+      }
+      this.ctx.closePath();
+      this.ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
+      this.ctx.fill();
+    }
+
+    // Draw solid lines
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = '#22c55e';
+    this.ctx.lineWidth = 2 / zoom;
+    this.ctx.moveTo(activePolygon[0]![0], activePolygon[0]![1]);
+    for (let i = 1; i < activePolygon.length; i++) {
+      this.ctx.lineTo(activePolygon[i]![0], activePolygon[i]![1]);
+    }
+    this.ctx.stroke();
+
+    // Draw dashed line to cursor
+    if (cursorPos) {
+      const lastPt = activePolygon[activePolygon.length - 1];
+      if (lastPt) {
+        this.ctx.beginPath();
+        this.ctx.setLineDash([5 / zoom, 5 / zoom]);
+        this.ctx.strokeStyle = '#22c55e';
+        this.ctx.moveTo(lastPt[0], lastPt[1]);
+        this.ctx.lineTo(cursorPos.x, cursorPos.y);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+      }
+      
+      // Draw line back to origin to preview closure
+      if (activePolygon.length >= 2) {
+        this.ctx.beginPath();
+        this.ctx.setLineDash([2 / zoom, 4 / zoom]);
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        this.ctx.moveTo(cursorPos.x, cursorPos.y);
+        this.ctx.lineTo(activePolygon[0]![0], activePolygon[0]![1]);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+      }
+    }
+
+    // Draw points
+    const size = 8 / zoom;
+    this.ctx.fillStyle = '#fff';
+    this.ctx.strokeStyle = '#22c55e';
+    this.ctx.lineWidth = 1 / zoom;
+    activePolygon.forEach((p, idx) => {
+      this.ctx.beginPath();
+      // First point is larger to indicate closure target
+      const r = idx === 0 ? size : size / 1.5;
+      this.ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    });
+
+    this.ctx.restore();
   }
 
   private drawSAMOverlay(): void {
@@ -178,21 +251,32 @@ export class Renderer {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = 1 / state.data.zoom;
 
-    const handles: Point[] = [
-      { x: box.x, y: box.y }, // nw
-      { x: box.x + box.width / 2, y: box.y }, // n
-      { x: box.x + box.width, y: box.y }, // ne
-      { x: box.x + box.width, y: box.y + box.height / 2 }, // e
-      { x: box.x + box.width, y: box.y + box.height }, // se
-      { x: box.x + box.width / 2, y: box.y + box.height }, // s
-      { x: box.x, y: box.y + box.height }, // sw
-      { x: box.x, y: box.y + box.height / 2 }, // w
-    ];
+    if (box.polygon) {
+      box.polygon.forEach((p) => {
+        const x = p[0];
+        const y = p[1];
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, size / 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+      });
+    } else {
+      const handles: Point[] = [
+        { x: box.x, y: box.y }, // nw
+        { x: box.x + box.width / 2, y: box.y }, // n
+        { x: box.x + box.width, y: box.y }, // ne
+        { x: box.x + box.width, y: box.y + box.height / 2 }, // e
+        { x: box.x + box.width, y: box.y + box.height }, // se
+        { x: box.x + box.width / 2, y: box.y + box.height }, // s
+        { x: box.x, y: box.y + box.height }, // sw
+        { x: box.x, y: box.y + box.height / 2 }, // w
+      ];
 
-    handles.forEach((pos) => {
-      this.ctx.fillRect(pos.x - size / 2, pos.y - size / 2, size, size);
-      this.ctx.strokeRect(pos.x - size / 2, pos.y - size / 2, size, size);
-    });
+      handles.forEach((pos) => {
+        this.ctx.fillRect(pos.x - size / 2, pos.y - size / 2, size, size);
+        this.ctx.strokeRect(pos.x - size / 2, pos.y - size / 2, size, size);
+      });
+    }
   }
 
   private drawLabel(box: BoundingBox, name: string, color: string): void {

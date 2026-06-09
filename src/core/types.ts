@@ -18,7 +18,7 @@ export interface AnnotationClass {
 
 // State Types
 export type TaskMode = 'detection' | 'segmentation';
-export type InteractionMode = 'select' | 'draw' | 'magic';
+export type InteractionMode = 'select' | 'draw' | 'magic' | 'polygon';
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'processing' | 'error';
 
 export interface ImageEntry {
@@ -57,6 +57,7 @@ export interface AppStateData {
   autoLabelProgress: number;
   modelStatus: ModelStatus;
   activeMask: number[] | Uint8Array | null;
+  activePolygon: [number, number][] | null;
   promptPoints: PromptPoint[];
   activePromptBox: [number, number, number, number] | null;
   samLatency: { encoder: number; decoder: number };
@@ -109,7 +110,8 @@ export type CanvasInteraction =
       startImgPos: Point;
       startBox: BoundingBox;
     }
-  | { type: 'magic'; startImgPos: Point; button: number; isDrag: boolean; currentImgPos?: Point };
+  | { type: 'magic'; startImgPos: Point; button: number; isDrag: boolean; currentImgPos?: Point }
+  | { type: 'move_vertex'; boxId: number; vertexIndex: number; startImgPos: Point; startPolygon: [number, number][] };
 
 // Embedding Cache
 export interface EmbeddingCacheEntry {

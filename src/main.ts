@@ -3,6 +3,7 @@ import { CanvasEngine } from './engine/canvas';
 import { YoloHelper } from './utils/yolo';
 import { ai } from './core/ai';
 import { ContourTracer } from './core/sam_utils';
+import { MathUtils } from './utils/math';
 import './components';
 import { TourManager } from './features/tour/TourManager';
 import { ImageListManager } from './features/ui/ImageListManager';
@@ -82,6 +83,7 @@ class App {
       onNextImage: () => this.workspaceManager.nextImage(),
       onPrevImage: () => this.workspaceManager.prevImage(),
       onConfirmMagicMask: () => this.confirmMagicMask(),
+      onConfirmPolygon: () => this.confirmPolygon(),
       onResetMagicInteraction: () => this.resetMagicInteraction(),
       onDeleteSelectedBox: () => this.deleteSelectedBox(),
       onAssignClass: (idx) => this.classListManager.assignClassToSelected(idx),
@@ -182,13 +184,18 @@ class App {
           this.tourManager.advanceTour('complete');
         }
 
+        if (oldData.mode === 'polygon' && data.mode !== 'polygon') {
+          state.set({ activePolygon: null });
+        }
+
         this.uiManager.dom.workspace.className =
-          data.mode === 'draw' || data.mode === 'magic'
+          data.mode === 'draw' || data.mode === 'magic' || data.mode === 'polygon'
             ? 'flex-1 bg-[#0a0b0e] relative overflow-hidden flex items-center justify-center cursor-crosshair'
             : 'flex-1 bg-[#0a0b0e] relative overflow-hidden flex items-center justify-center cursor-default';
 
         const isDrawOrMagic = data.mode === 'draw' || data.mode === 'magic';
         this.uiManager.dom.btnDraw.classList.toggle('active', isDrawOrMagic);
+        this.uiManager.dom.btnPolygon.classList.toggle('active', data.mode === 'polygon');
         this.uiManager.dom.btnSelect.classList.toggle('active', data.mode === 'select');
       }
 
@@ -267,6 +274,7 @@ class App {
       const isFolderLoaded = !!data.folderHandle || data.images.length > 0;
       this.uiManager.dom.btnSelect.disabled = !isFolderLoaded;
       this.uiManager.dom.btnDraw.disabled = !isFolderLoaded;
+      this.uiManager.dom.btnPolygon.disabled = !isFolderLoaded;
       this.uiManager.dom.btnPrev.disabled = !isFolderLoaded;
       this.uiManager.dom.btnNext.disabled = !isFolderLoaded;
       this.uiManager.dom.btnExport.disabled = !isFolderLoaded;
@@ -326,6 +334,7 @@ class App {
     const initialMode = state.data.mode;
     const isDrawOrMagic = initialMode === 'draw' || initialMode === 'magic';
     this.uiManager.dom.btnDraw.classList.toggle('active', isDrawOrMagic);
+    this.uiManager.dom.btnPolygon.classList.toggle('active', initialMode === 'polygon');
     this.uiManager.dom.btnSelect.classList.toggle('active', initialMode === 'select');
   }
 
@@ -705,6 +714,39 @@ class App {
   resetMagicInteraction(): void {
     state.set({ promptPoints: [], activeMask: null, activePromptBox: null });
     this.canvasEngine.draw();
+  }
+
+  confirmPolygon(): void {
+    const { activePolygon, selectedClassId } = state.data;
+    if (!activePolygon || activePolygon.length < 3) return;
+
+    const xs = activePolygon.map((p) => p[0]);
+    const ys = activePolygon.map((p) => p[1]);
+    const x1 = Math.min(...xs);
+    const y1 = Math.min(...ys);
+    const width = Math.max(...xs) - x1;
+    const height = Math.max(...ys) - y1;
+
+    const newAnnotation: BoundingBox = {
+      id: Date.now(),
+      classId: selectedClassId !== null ? selectedClassId : 0,
+      x: x1,
+      y: y1,
+      width,
+      height,
+      polygon: activePolygon,
+      score: 1.0,
+    };
+
+    state.saveHistory();
+    const newAnnos = [...state.data.annotations, newAnnotation];
+    state.set({
+      annotations: newAnnos,
+      activePolygon: null,
+      mode: 'select',
+    });
+
+    this.uiManager.updateStatus('✅ Polygon confirmed');
   }
 
   async confirmMagicMask(): Promise<void> {

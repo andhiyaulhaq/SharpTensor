@@ -191,6 +191,11 @@ export class WorkspaceManager {
       }
 
       state.set({ annotations: annotations || [] });
+      
+      if (currentTask === 'segmentation') {
+        setTimeout(() => ai.setSAMImage(currentImageBitmap, imageInfo.name), 50);
+      }
+      
       this.updateStatus(`Ready`);
     } catch (err) {
       console.error(err);

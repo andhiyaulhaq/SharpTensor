@@ -5,6 +5,7 @@ export interface KeyboardManagerConfig {
   onNextImage: () => void;
   onPrevImage: () => void;
   onConfirmMagicMask: () => void;
+  onConfirmPolygon: () => void;
   onResetMagicInteraction: () => void;
   onDeleteSelectedBox: () => void;
   onAssignClass: (classIndex: number) => void;
@@ -46,6 +47,15 @@ export class KeyboardManager {
       if (key === 'm') {
         const isDet = state.data.currentTask === 'detection';
         state.set({ mode: isDet ? 'draw' : 'magic' });
+      }
+      if (key === 'p') {
+        const isSeg = state.data.currentTask === 'segmentation';
+        if (isSeg) state.set({ mode: 'polygon' });
+      }
+      if (key === 'enter') {
+        if (state.data.mode === 'polygon' && state.data.activePolygon) {
+          this.config.onConfirmPolygon();
+        }
       }
       if (key === 'd') this.config.onNextImage();
       if (key === 'a') this.config.onPrevImage();

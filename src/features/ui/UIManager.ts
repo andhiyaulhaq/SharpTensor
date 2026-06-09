@@ -17,6 +17,7 @@ export class UIManager {
   dom!: {
     btnOpen: HTMLButtonElement;
     btnDraw: HTMLButtonElement;
+    btnPolygon: HTMLButtonElement;
     btnSelect: HTMLButtonElement;
     btnPrev: HTMLButtonElement;
     btnNext: HTMLButtonElement;
@@ -54,6 +55,7 @@ export class UIManager {
     this.dom = {
       btnOpen: getEl<HTMLButtonElement>('btn-open'),
       btnDraw: getEl<HTMLButtonElement>('btn-draw'),
+      btnPolygon: getEl<HTMLButtonElement>('btn-polygon'),
       btnSelect: getEl<HTMLButtonElement>('btn-select'),
       btnPrev: getEl<HTMLButtonElement>('btn-prev'),
       btnNext: getEl<HTMLButtonElement>('btn-next'),
@@ -81,6 +83,10 @@ export class UIManager {
     this.dom.btnDraw.addEventListener('click', () => {
       const isDet = state.data.currentTask === 'detection';
       state.set({ mode: isDet ? 'draw' : 'magic' });
+    });
+    this.dom.btnPolygon.addEventListener('click', () => {
+      const isSeg = state.data.currentTask === 'segmentation';
+      if (isSeg) state.set({ mode: 'polygon' });
     });
     this.dom.btnSelect.addEventListener('click', () => state.set({ mode: 'select' }));
     this.dom.btnOpen.addEventListener('click', () => this.config.onOpenFolder());
@@ -172,6 +178,9 @@ export class UIManager {
 
     if (state.data.mode === 'draw' && !isDet) state.set({ mode: 'magic' });
     if (state.data.mode === 'magic' && isDet) state.set({ mode: 'draw' });
+    if (state.data.mode === 'polygon' && isDet) state.set({ mode: 'draw' });
+    
+    this.dom.btnPolygon.style.display = isDet ? 'none' : 'flex';
   }
 
   showModal(params: {

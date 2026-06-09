@@ -7,6 +7,11 @@ import { Renderer } from './Renderer';
 export class InteractionManager {
   interaction: CanvasInteraction | null = null;
   private lastMousePos: Point = { x: 0, y: 0 };
+  private polygonCursorImgPos: Point | null = null;
+
+  public getPolygonCursorPos(): Point | null {
+    return this.polygonCursorImgPos;
+  }
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -91,6 +96,27 @@ export class InteractionManager {
     const isSegTask = state.data.currentTask === 'segmentation';
     const isMagicOrSegDraw = state.data.mode === 'magic' || (state.data.mode === 'draw' && isSegTask);
 
+    if (state.data.mode === 'polygon' && isSegTask) {
+      if (e.button !== 0) return;
+      const activePoly = state.data.activePolygon || [];
+      
+      if (activePoly.length > 0) {
+        const startPt = activePoly[0];
+        if (startPt) {
+          const dist = Math.sqrt(Math.pow(imgPos.x - startPt[0], 2) + Math.pow(imgPos.y - startPt[1], 2));
+          const pxDist = dist * state.data.zoom;
+          if (pxDist < 10) {
+            const event = new KeyboardEvent('keydown', { key: 'Enter' });
+            window.dispatchEvent(event);
+            return;
+          }
+        }
+      }
+      
+      state.set({ activePolygon: [...activePoly, [imgPos.x, imgPos.y]] });
+      return;
+    }
+
     if (isMagicOrSegDraw && state.data.currentImageBitmap) {
       this.interaction = {
         type: 'magic',
@@ -119,13 +145,24 @@ export class InteractionManager {
       if (!targetBox) return;
 
       if (hit.handle) {
-        this.interaction = {
-          type: 'resize',
-          handle: hit.handle as ResizeHandle,
-          boxId: hit.boxId,
-          startImgPos: imgPos,
-          startBox: { ...targetBox },
-        };
+        if (hit.handle.startsWith('vertex_')) {
+          const vIdx = parseInt(hit.handle.split('_')[1]!, 10);
+          this.interaction = {
+            type: 'move_vertex',
+            boxId: hit.boxId,
+            vertexIndex: vIdx,
+            startImgPos: imgPos,
+            startPolygon: JSON.parse(JSON.stringify(targetBox.polygon)),
+          };
+        } else {
+          this.interaction = {
+            type: 'resize',
+            handle: hit.handle as ResizeHandle,
+            boxId: hit.boxId,
+            startImgPos: imgPos,
+            startBox: { ...targetBox },
+          };
+        }
       } else {
         this.interaction = {
           type: 'move',
@@ -175,6 +212,12 @@ export class InteractionManager {
     const { x, y } = this.getMousePos(e);
     const imgPos = this.screenToImage(x, y);
 
+    if (state.data.mode === 'polygon') {
+      this.polygonCursorImgPos = imgPos;
+    } else {
+      this.polygonCursorImgPos = null;
+    }
+
     if (this.interaction) {
       if (this.interaction.type === 'pan') {
         const dx = e.clientX - this.lastMousePos.x;
@@ -204,13 +247,17 @@ export class InteractionManager {
         if (hit.handle === 'label') {
           this.canvas.style.cursor = 'pointer';
         } else if (hit.handle) {
-          const cursorMap: Record<string, string> = {
-            nw: 'nwse-resize', se: 'nwse-resize',
-            ne: 'nesw-resize', sw: 'nesw-resize',
-            n: 'ns-resize', s: 'ns-resize',
-            e: 'ew-resize', w: 'ew-resize',
-          };
-          this.canvas.style.cursor = cursorMap[hit.handle] || 'crosshair';
+          if (hit.handle.startsWith('vertex_')) {
+            this.canvas.style.cursor = 'move';
+          } else {
+            const cursorMap: Record<string, string> = {
+              nw: 'nwse-resize', se: 'nwse-resize',
+              ne: 'nesw-resize', sw: 'nesw-resize',
+              n: 'ns-resize', s: 'ns-resize',
+              e: 'ew-resize', w: 'ew-resize',
+            };
+            this.canvas.style.cursor = cursorMap[hit.handle] || 'crosshair';
+          }
         } else {
           this.canvas.style.cursor = 'move';
         }
@@ -302,6 +349,26 @@ export class InteractionManager {
         };
       }
 
+      if (type === 'move_vertex') {
+        const { vertexIndex, startPolygon } = this.interaction as any;
+        const b = { ...box };
+        const newPolygon = JSON.parse(JSON.stringify(startPolygon));
+        
+        newPolygon[vertexIndex][0] = Math.max(0, Math.min(startPolygon[vertexIndex][0] + dx, imgWidth));
+        newPolygon[vertexIndex][1] = Math.max(0, Math.min(startPolygon[vertexIndex][1] + dy, imgHeight));
+        
+        b.polygon = newPolygon;
+        
+        const xs = newPolygon.map((p: any) => p[0]);
+        const ys = newPolygon.map((p: any) => p[1]);
+        b.x = Math.min(...xs);
+        b.y = Math.min(...ys);
+        b.width = Math.max(...xs) - b.x;
+        b.height = Math.max(...ys) - b.y;
+        
+        return b;
+      }
+
       const startBox = (this.interaction as any).startBox as BoundingBox | undefined;
       if (!startBox) return box;
 
@@ -312,7 +379,14 @@ export class InteractionManager {
         newX = Math.max(0, Math.min(newX, imgWidth - startBox.width));
         newY = Math.max(0, Math.min(newY, imgHeight - startBox.height));
 
-        return { ...box, x: newX, y: newY };
+        const finalDx = newX - startBox.x;
+        const finalDy = newY - startBox.y;
+
+        const newBox = { ...box, x: newX, y: newY };
+        if (startBox.polygon) {
+           newBox.polygon = startBox.polygon.map(p => [p[0] + finalDx, p[1] + finalDy]);
+        }
+        return newBox;
       }
 
       if (type === 'resize') {
@@ -334,6 +408,16 @@ export class InteractionManager {
           b.y = startBox.y + (startBox.height - newHeight);
           b.height = newHeight;
         }
+        
+        if (startBox.polygon) {
+          const scaleX = b.width / startBox.width;
+          const scaleY = b.height / startBox.height;
+          b.polygon = startBox.polygon.map(p => [
+            b.x + (p[0] - startBox.x) * scaleX,
+            b.y + (p[1] - startBox.y) * scaleY
+          ]);
+        }
+        
         return b;
       }
       return box;
