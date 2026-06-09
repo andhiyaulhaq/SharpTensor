@@ -16,11 +16,11 @@ As the project scales in complexity (handling hundreds of complex polygons and r
 5. **Inefficient History Tracking**: JSON-stringifying large segmentation polygon arrays for every interaction consumes significant memory and processing time.
 
 ## Decision
-We will migrate the application's core state management from the custom Observer pattern to **Zustand** paired with the **Immer.js** and **Zundo** middlewares.
+We will migrate the application's core state management from the custom Observer pattern to **Zustand** paired with the **Immer.js** middleware, alongside a custom vanilla history implementation.
 
 - **Zustand (`zustand/vanilla`)**: A highly scalable, unopinionated, and lightweight state-management library that works flawlessly in Vanilla TypeScript environments (no React required).
 - **Immer (`zustand/middleware/immer`)**: A library that allows developers to write code that "mutates" state directly (using Proxies) while outputting perfectly immutable data structures through structural sharing.
-- **Zundo (`zundo`)**: A specialized Zustand middleware for adding infinite Undo/Redo tracking. By leveraging Immer's structural sharing, it tracks memory-efficient "deltas" (diffs) instead of storing complete JSON string snapshots of the state.
+- **Custom Vanilla History**: A lightweight, native TypeScript history manager built directly into the store to handle Undo/Redo tracking without relying on external middlewares that may introduce unwanted dependencies (like React).
 
 ## Consequences
 
@@ -36,11 +36,11 @@ updatePolygonNode: (boxId, nodeIdx, x, y) => set((state) => {
 ```
 - **Decoupled Side Effects**: We can eliminate the monolithic `state.subscribe` in `main.ts`. Actions (like `confirmPolygon`) will directly encapsulate their state changes and trigger their intended side effects (like initiating a save) synchronously.
 - **Race Condition Mitigation**: Background async operations will reference the deterministic, immutable state snapshot retrieved via `get()`, completely eliminating stale closure bugs.
-- **Memory Efficiency (via Zundo)**: Replacing the custom JSON.stringify history stack with Zundo means the system only stores the exact state deltas (e.g., changing a single node in a 1,000-node polygon). This drastically reduces memory overhead by >90% and eliminates UI stutter during complex mask manipulations.
+- **Decoupled History Management**: Replacing the legacy JSON-stringify history stack with a dedicated `HistoryManager` attached to `store.subscribe()` isolates history tracking from the main business logic, keeping the store lean and performant without third-party React baggage.
 
 ### Negative / Risks
 - **Refactoring Effort**: Every existing call to `state.data.X` and `state.set()` across the codebase (UI Managers, Renderers, AI pipelines) will need to be refactored to interface with `store.getState()` and dedicated Action dispatchers.
-- **Dependency Overhead**: Adds three new third-party dependencies (`zustand`, `immer`, `zundo`) to the otherwise dependency-light Vanilla Vite project. However, all three libraries are exceptionally small and highly tree-shakeable.
+- **Dependency Overhead**: Adds two new third-party dependencies (`zustand`, `immer`) to the otherwise dependency-light Vanilla Vite project. However, both libraries are exceptionally small and highly tree-shakeable.
 
 ## Implementation Strategy
 
@@ -54,4 +54,4 @@ Draft specific Action methods attached to the store (e.g., `loadAnnotations`, `s
 Systematically update the UI, FileSystem, and Workspace managers to pull state via `store.getState()` and invoke actions instead of calling `state.set()`.
 
 ### Phase 4: History Upgrade
-Replace the custom JSON-stringify Undo/Redo logic with a delta-based tracking middleware (such as `zundo`) attached to the Zustand store.
+Replace the custom Undo/Redo logic with a decoupled native Vanilla `HistoryManager` that subscribes to the Zustand store and manages state snapshots explicitly.
