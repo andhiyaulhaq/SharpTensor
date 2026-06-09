@@ -32,7 +32,12 @@ export class AppHeader extends HTMLElement {
           </st-tool-button>
           <st-tool-button id="btn-polygon" title="Polygon Tool (P)" disabled>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 22 22 22"/>
+              <path d="M12 2l8.5 6.5-3.3 10.5H6.8L3.5 8.5z" />
+              <circle cx="12" cy="2" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="20.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="18.7" cy="19" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="5.3" cy="19" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="3.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
             </svg>
           </st-tool-button>
           <div class="w-px h-5 bg-(--border) mx-1"></div>
