@@ -291,15 +291,34 @@ export class Renderer {
     const bgWidth = textWidth + padding * 2 + chevronSize + chevronGap;
     const bgHeight = fontSize + padding * 2;
 
+    let startX = box.x;
+    let startY = box.y;
+
+    if (state.data.currentTask === 'segmentation') {
+      if (box.polygon && box.polygon.length > 0) {
+        let minNode = box.polygon[0]!;
+        for (let i = 1; i < box.polygon.length; i++) {
+          const current = box.polygon[i]!;
+          if (current[1] < minNode[1]) {
+            minNode = current;
+          }
+        }
+        startX = minNode[0] - bgWidth / 2;
+        startY = minNode[1] - (10 / state.data.zoom);
+      } else {
+        startX = box.x + box.width / 2 - bgWidth / 2;
+      }
+    }
+
     this.ctx.fillStyle = color;
-    this.ctx.fillRect(box.x, box.y - bgHeight, bgWidth, bgHeight);
+    this.ctx.fillRect(startX, startY - bgHeight, bgWidth, bgHeight);
 
     const contrastColor = YoloHelper.getContrastColor(color);
     this.ctx.fillStyle = contrastColor;
-    this.ctx.fillText(name, box.x + padding, box.y - padding);
+    this.ctx.fillText(name, startX + padding, startY - padding);
 
-    const cx = box.x + padding + textWidth + chevronGap;
-    const cy = box.y - padding - fontSize / 2.5;
+    const cx = startX + padding + textWidth + chevronGap;
+    const cy = startY - padding - fontSize / 2.5;
 
     this.ctx.beginPath();
     this.ctx.moveTo(cx, cy);
