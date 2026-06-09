@@ -347,6 +347,20 @@ export class Renderer {
       dropdown.appendChild(item);
     });
 
+    // Add "Create New Class" option at the bottom
+    const newClassItem = document.createElement('div');
+    newClassItem.className = 'dropdown-item';
+    newClassItem.innerHTML = `
+      <span class="color-dot" style="background: transparent; border: 1px dashed var(--text-muted); display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 4px; font-weight: bold;">+</span>
+      <span class="class-name" style="color: var(--accent);">Create New Class...</span>
+    `;
+    newClassItem.onclick = (e) => {
+      e.stopPropagation();
+      dropdown.remove();
+      window.dispatchEvent(new CustomEvent('st:request-add-class', { detail: { boxId } }));
+    };
+    dropdown.appendChild(newClassItem);
+
     document.body.appendChild(dropdown);
 
     const closeHandler = (e: MouseEvent) => {

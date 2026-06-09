@@ -68,9 +68,12 @@ class App {
       onClearAllAnnotations: () => this.handleClearAllAnnotations(),
       onNextImage: () => this.workspaceManager.nextImage(),
       onPrevImage: () => this.workspaceManager.prevImage(),
-      onPromptForFirstClass: (e) => this.promptForFirstClass(e),
       onExport: (format) => this.handleExport(format),
     });
+
+    window.addEventListener('st:request-add-class', ((e: CustomEvent) => {
+      this.handleAddClass(e.detail?.boxId);
+    }) as EventListener);
 
     this.workspaceManager = new WorkspaceManager({
       fileSystemManager: this.fileSystemManager,
@@ -426,40 +429,13 @@ class App {
     }
   }
 
-  handleAddClass(): void {
+  handleAddClass(boxId?: number): void {
     this.uiManager.showModal({
       title: 'Add New Class',
       message: 'Enter the name for the new class:',
       inputPlaceholder: 'Class name...',
       confirmText: 'Add Class',
-      onConfirm: (val) => {
-        const name = val.trim();
-        if (!name) return;
-        const { classes } = state.data;
-        const exists = classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
-        if (exists) {
-          this.uiManager.updateStatus('❌ Class already exists', true);
-          return;
-        }
-        const newId = classes.length > 0 ? Math.max(...classes.map((c) => c.id)) + 1 : 0;
-        const newClass: ClassDefinition = { id: newId, name, color: YoloHelper.generateColor(newId) };
-        const newClasses = [...classes, newClass];
-        state.set({ classes: newClasses, selectedClassId: newId });
-        this.fileSystemManager.saveClasses(newClasses);
-        this.uiManager.updateStatus('✅ Class added successfully');
-      }
-    });
-  }
-
-  promptForFirstClass(e: CustomEvent<{ boxId?: number }>): void {
-    const { boxId } = e.detail;
-    this.uiManager.showModal({
-      title: 'Define First Class',
-      message:
-        'You just drew a box! What is the class name for this object? (e.g. "car", "defect")',
-      inputPlaceholder: 'Class name...',
-      confirmText: 'Create Class',
-      cancelText: 'Cancel Box',
+      cancelText: boxId !== undefined ? 'Cancel Box' : 'Cancel',
       onConfirm: (val) => {
         const name = val.trim();
         if (!name) {
@@ -468,13 +444,25 @@ class App {
           }
           return;
         }
-        const newClass: ClassDefinition = { id: 0, name, color: YoloHelper.generateColor(0) };
-        state.set({ classes: [newClass], selectedClassId: 0 });
-        this.fileSystemManager.saveClasses([newClass]);
-
+        const { classes } = state.data;
+        const exists = classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
+        if (exists) {
+          this.uiManager.updateStatus('❌ Class already exists', true);
+          if (boxId !== undefined) {
+            state.set({ annotations: state.data.annotations.filter((b) => b.id !== boxId) });
+          }
+          return;
+        }
+        const newId = classes.length > 0 ? Math.max(...classes.map((c) => c.id)) + 1 : 0;
+        const newClass: ClassDefinition = { id: newId, name, color: YoloHelper.generateColor(newId) };
+        const newClasses = [...classes, newClass];
+        state.set({ classes: newClasses, selectedClassId: newId });
+        this.fileSystemManager.saveClasses(newClasses);
+        this.uiManager.updateStatus('✅ Class added successfully');
+        
         if (boxId !== undefined) {
           const newAnnos = state.data.annotations.map((b) =>
-            b.id === boxId ? { ...b, classId: 0 } : b
+            b.id === boxId ? { ...b, classId: newId } : b
           );
           state.set({ annotations: newAnnos });
           this.fileSystemManager.debouncedSave();
@@ -484,7 +472,7 @@ class App {
         if (boxId !== undefined) {
           state.set({ annotations: state.data.annotations.filter((b) => b.id !== boxId) });
         }
-      },
+      }
     });
   }
 

@@ -293,7 +293,9 @@ export class InteractionManager {
             if (state.data.classes.length > 0) {
               this.renderer.showClassDropdown(boxId, e.clientX, e.clientY);
             } else {
-              window.dispatchEvent(new CustomEvent('request-new-class', { detail: { boxId } }));
+              window.dispatchEvent(
+                new CustomEvent('st:request-add-class', { detail: { boxId: boxId } })
+              );
             }
           }
         }

@@ -9,7 +9,6 @@ export interface UIManagerConfig {
   onClearAllAnnotations: () => void;
   onNextImage: () => void;
   onPrevImage: () => void;
-  onPromptForFirstClass: (e: CustomEvent<{ boxId?: number }>) => void;
   onExport: (format: ExportFormat) => void;
 }
 
@@ -90,10 +89,6 @@ export class UIManager {
     });
     this.dom.btnSelect.addEventListener('click', () => state.set({ mode: 'select' }));
     this.dom.btnOpen.addEventListener('click', () => this.config.onOpenFolder());
-
-    window.addEventListener('request-new-class', (e: Event) => {
-      this.config.onPromptForFirstClass(e as CustomEvent<{ boxId?: number }>);
-    });
 
     window.addEventListener('status-update', (e: Event) => {
       const { msg, isError } = (e as CustomEvent).detail;

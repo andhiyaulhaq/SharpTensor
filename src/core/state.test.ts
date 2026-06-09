@@ -58,8 +58,8 @@ describe('AppState', () => {
       state.set({ annotations: [{ id: 1, x: 10, y: 10, width: 20, height: 20, classId: 0 }] });
       state.saveHistory();
 
-      expect(state.undoStack).toHaveLength(1);
-      expect(state.redoStack).toHaveLength(0);
+      expect(state.history[state.data.currentTask].undo).toHaveLength(1);
+      expect(state.history[state.data.currentTask].redo).toHaveLength(0);
     });
 
     it('should not save history if annotations have not changed', () => {
@@ -67,7 +67,7 @@ describe('AppState', () => {
       state.saveHistory();
       state.saveHistory();
 
-      expect(state.undoStack).toHaveLength(1);
+      expect(state.history[state.data.currentTask].undo).toHaveLength(1);
     });
 
     it('should undo and redo correctly', () => {
@@ -88,7 +88,7 @@ describe('AppState', () => {
       expect(state.data.annotations).toEqual([
         { id: 1, x: 0, y: 0, width: 10, height: 10, classId: 0 },
       ]);
-      expect(state.redoStack).toHaveLength(1);
+      expect(state.history[state.data.currentTask].redo).toHaveLength(1);
 
       state.redo();
       expect(state.data.annotations).toEqual([
@@ -112,12 +112,12 @@ describe('AppState', () => {
       });
 
       state.undo();
-      expect(state.redoStack).toHaveLength(1);
+      expect(state.history[state.data.currentTask].redo).toHaveLength(1);
 
       state.set({ annotations: [{ id: 3, x: 0, y: 0, width: 10, height: 10, classId: 0 }] });
       state.saveHistory();
 
-      expect(state.redoStack).toHaveLength(0);
+      expect(state.history[state.data.currentTask].redo).toHaveLength(0);
     });
   });
 });
