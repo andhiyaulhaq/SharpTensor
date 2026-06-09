@@ -4,7 +4,7 @@
  */
 
 export class ResizeLongestSide {
-  constructor(private readonly targetLength: number) {}
+  constructor(private readonly targetLength: number) { }
 
   /**
    * Get shape after resizing longest side
@@ -282,7 +282,7 @@ export class ContourTracer {
       count++;
     }
 
-    return this.simplify(points, 1.5);
+    return this.simplify(points, 10.0);
   }
 
   /**
