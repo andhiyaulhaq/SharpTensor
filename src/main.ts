@@ -427,19 +427,28 @@ class App {
   }
 
   handleAddClass(): void {
-    const name = prompt('Enter new class name:');
-    if (!name) return;
-    const { classes } = state.data;
-    const exists = classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (exists) {
-      alert('Class already exists!');
-      return;
-    }
-    const newId = classes.length > 0 ? Math.max(...classes.map((c) => c.id)) + 1 : 0;
-    const newClass: ClassDefinition = { id: newId, name, color: YoloHelper.generateColor(newId) };
-    const newClasses = [...classes, newClass];
-    state.set({ classes: newClasses, selectedClassId: newId });
-    this.fileSystemManager.saveClasses(newClasses);
+    this.uiManager.showModal({
+      title: 'Add New Class',
+      message: 'Enter the name for the new class:',
+      inputPlaceholder: 'Class name...',
+      confirmText: 'Add Class',
+      onConfirm: (val) => {
+        const name = val.trim();
+        if (!name) return;
+        const { classes } = state.data;
+        const exists = classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
+        if (exists) {
+          this.uiManager.updateStatus('❌ Class already exists', true);
+          return;
+        }
+        const newId = classes.length > 0 ? Math.max(...classes.map((c) => c.id)) + 1 : 0;
+        const newClass: ClassDefinition = { id: newId, name, color: YoloHelper.generateColor(newId) };
+        const newClasses = [...classes, newClass];
+        state.set({ classes: newClasses, selectedClassId: newId });
+        this.fileSystemManager.saveClasses(newClasses);
+        this.uiManager.updateStatus('✅ Class added successfully');
+      }
+    });
   }
 
   promptForFirstClass(e: CustomEvent<{ boxId?: number }>): void {
