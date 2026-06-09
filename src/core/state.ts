@@ -6,8 +6,10 @@ import { AppStateData } from './types';
  */
 export class AppState {
   public data: AppStateData;
-  public undoStack: string[];
-  public redoStack: string[];
+  public history: {
+    detection: { undo: string[]; redo: string[] };
+    segmentation: { undo: string[]; redo: string[] };
+  };
   private listeners: ((data: AppStateData, oldState: AppStateData) => void)[];
 
   constructor() {
@@ -47,8 +49,10 @@ export class AppState {
       tourStep: 'idle',
     };
 
-    this.undoStack = [];
-    this.redoStack = [];
+    this.history = {
+      detection: { undo: [], redo: [] },
+      segmentation: { undo: [], redo: [] },
+    };
     this.listeners = [];
   }
 
@@ -57,30 +61,36 @@ export class AppState {
    */
   saveHistory(): void {
     const snapshot = JSON.stringify(this.data.annotations);
+    const stack = this.history[this.data.currentTask];
     // Only save if different from last
-    if (this.undoStack.length > 0 && this.undoStack[this.undoStack.length - 1] === snapshot) return;
+    if (stack.undo.length > 0 && stack.undo[stack.undo.length - 1] === snapshot) return;
 
-    this.undoStack.push(snapshot);
-    if (this.undoStack.length > 50) this.undoStack.shift();
-    this.redoStack = []; // New action clears redo stack
+    stack.undo.push(snapshot);
+    if (stack.undo.length > 50) stack.undo.shift();
+    stack.redo = []; // New action clears redo stack
   }
 
   /**
    * Clears history stack (e.g., when switching images)
    */
-  clearHistory(): void {
-    this.undoStack = [];
-    this.redoStack = [];
+  clearHistory(allTasks = false): void {
+    if (allTasks) {
+      this.history.detection = { undo: [], redo: [] };
+      this.history.segmentation = { undo: [], redo: [] };
+    } else {
+      this.history[this.data.currentTask] = { undo: [], redo: [] };
+    }
   }
 
   undo(): boolean {
-    if (this.undoStack.length === 0) return false;
+    const stack = this.history[this.data.currentTask];
+    if (stack.undo.length === 0) return false;
 
     // Capture current state for redo
     const currentState = JSON.stringify(this.data.annotations);
-    this.redoStack.push(currentState);
+    stack.redo.push(currentState);
 
-    const previousSnapshot = this.undoStack.pop();
+    const previousSnapshot = stack.undo.pop();
     if (previousSnapshot) {
       const previous = JSON.parse(previousSnapshot);
       this.set({ annotations: previous });
@@ -89,13 +99,14 @@ export class AppState {
   }
 
   redo(): boolean {
-    if (this.redoStack.length === 0) return false;
+    const stack = this.history[this.data.currentTask];
+    if (stack.redo.length === 0) return false;
 
     // Capture current state for undo
     const currentState = JSON.stringify(this.data.annotations);
-    this.undoStack.push(currentState);
+    stack.undo.push(currentState);
 
-    const nextSnapshot = this.redoStack.pop();
+    const nextSnapshot = stack.redo.pop();
     if (nextSnapshot) {
       const next = JSON.parse(nextSnapshot);
       this.set({ annotations: next });

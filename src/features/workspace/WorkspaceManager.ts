@@ -74,7 +74,7 @@ export class WorkspaceManager {
         if (oldestIndex !== undefined) this.imageCache.delete(oldestIndex);
       }
 
-      state.clearHistory();
+      state.clearHistory(true);
       state.saveHistory();
 
       state.set({
