@@ -259,7 +259,7 @@ export class FileSystemManager {
       try {
         const fileHandle = await targetFolder.getFileHandle('classes.txt', { create: true });
         const writable = await fileHandle.createWritable();
-        const content = classes.map((c) => c.name).join('\\n');
+        const content = classes.map((c) => c.name).join('\n');
         await writable.write(content);
         await writable.close();
       } catch (e) {

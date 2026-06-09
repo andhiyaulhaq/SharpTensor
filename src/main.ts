@@ -123,6 +123,7 @@ class App {
     });
 
     this.initStateListeners();
+    this.uiManager.updateTaskUI(state.data.currentTask);
 
     ai.loadModels();
 
@@ -726,7 +727,7 @@ class App {
 
     const newAnnotation: BoundingBox = {
       id: Date.now(),
-      classId: selectedClassId !== null ? selectedClassId : 0,
+      classId: selectedClassId !== null ? selectedClassId : -1,
       x: x1,
       y: y1,
       width,
@@ -740,10 +741,21 @@ class App {
     state.set({
       annotations: newAnnos,
       activePolygon: null,
-      mode: 'select',
     });
 
     this.uiManager.updateStatus('✅ Polygon confirmed');
+
+    if (state.data.classes.length === 0) {
+      window.dispatchEvent(
+        new CustomEvent('st:request-add-class', { detail: { boxId: newAnnotation.id } })
+      );
+    } else {
+      const canvas = document.querySelector('canvas');
+      const rect = canvas?.getBoundingClientRect();
+      const cx = rect ? rect.left + (x1 + width / 2) * state.data.zoom + state.data.pan.x : window.innerWidth / 2;
+      const cy = rect ? rect.top + (y1 + height / 2) * state.data.zoom + state.data.pan.y : window.innerHeight / 2;
+      this.canvasEngine.showClassDropdown(newAnnotation.id, cx, cy);
+    }
   }
 
   async confirmMagicMask(): Promise<void> {
@@ -778,7 +790,7 @@ class App {
 
     const newAnnotation: BoundingBox = {
       id: Date.now(),
-      classId: selectedClassId !== null ? selectedClassId : 0,
+      classId: selectedClassId !== null ? selectedClassId : -1,
       x: x1,
       y: y1,
       width: width,
@@ -797,6 +809,18 @@ class App {
     });
 
     this.uiManager.updateStatus(`✅ ${isSegTask ? 'Polygon' : 'Box'} confirmed`);
+
+    if (state.data.classes.length === 0) {
+      window.dispatchEvent(
+        new CustomEvent('st:request-add-class', { detail: { boxId: newAnnotation.id } })
+      );
+    } else {
+      const canvas = document.querySelector('canvas');
+      const rect = canvas?.getBoundingClientRect();
+      const cx = rect ? rect.left + (x1 + width / 2) * state.data.zoom + state.data.pan.x : window.innerWidth / 2;
+      const cy = rect ? rect.top + (y1 + height / 2) * state.data.zoom + state.data.pan.y : window.innerHeight / 2;
+      this.canvasEngine.showClassDropdown(newAnnotation.id, cx, cy);
+    }
   }
 
   getMaskBounds(

@@ -90,4 +90,8 @@ export class CanvasEngine {
   handleMagicBox(x1: number, y1: number, x2: number, y2: number): void {
     this.interactionManager.handleMagicBox(x1, y1, x2, y2);
   }
+
+  showClassDropdown(boxId: number, clientX: number, clientY: number): void {
+    this.renderer.showClassDropdown(boxId, clientX, clientY);
+  }
 }
